@@ -1,0 +1,33 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: health-next
+
+sa-token:
+  token-name: satoken
+  timeout: 2592000
+  is-concurrent: true
+  is-share: true
+  token-style: uuid
+  is-log: false
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      show-details: never
+
+health:
+  auth:
+    username: ${HEALTH_NEXT_USERNAME:admin}
+    password: ${HEALTH_NEXT_PASSWORD:admin123}
+    display-name: 管理员
+  cors:
+    allowed-origin-patterns: ${HEALTH_NEXT_CORS:http://localhost:9531,http://127.0.0.1:9531}
