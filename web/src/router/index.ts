@@ -21,6 +21,12 @@ const router = createRouter({
           meta: { title: '工作台' },
         },
         {
+          path: 'health-monitor/real-time',
+          name: 'duty-roster',
+          component: () => import('@/modules/duty-roster/DutyRosterPage.vue'),
+          meta: { title: '值班名单' },
+        },
+        {
           path: 'health-monitor/body-360',
           name: 'body-360',
           component: () => import('@/modules/human-body/Body360Page.vue'),
