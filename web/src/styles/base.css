@@ -29,6 +29,12 @@
   --signal-cyan: #38bdf8;
   --radius-sm: 4px;
   --radius-md: 6px;
+  /* 人体仪表高对比度指标语义色（参考效果图） */
+  --gauge-heart: #f87171;
+  --gauge-oxygen: #34d399;
+  --gauge-bp: #38bdf8;
+  --gauge-temp: #fbbf24;
+  --gauge-stress: #a78bfa;
 }
 
 html,

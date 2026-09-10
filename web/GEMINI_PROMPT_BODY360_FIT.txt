@@ -1,0 +1,21 @@
+只改沉浸页 /health-monitor/body-360-immersive。不要改保底页 /health-monitor/body-360，不要改井下地图，不要改后端。不要重写 Three.js 的 initScene / loadModel / animate / dispose。
+
+仓库：/Users/jiangqianli/Documents/code/HealthNext
+主要文件：web/src/modules/human-body/Body360ImmersivePage.vue
+人体大小只改 BodyHologram.vue 里 variant==="immersive" 的相机距离/模型缩放/CSS，禁止影响普通 360° 页。
+
+# 两个问题
+1. 人太大，头顶被裁掉，看不到完整人体。
+2. 左边职工标卡被拉成通高玻璃柱：上面一点身份、下面一点按钮，中间一大块空玻璃。不要再用内容去填这个洞。
+
+# 怎么改才协调
+不要通高左栏。改成「浮岛」：
+
+- 左上：一块按内容撑开的矮卡（身份 + 两行遥测），高度跟着内容走，大约 160～200px，不要 stretch 到走势条。
+- 左下：单独一条矮的联系条（发消息 / 语音 / 电话·未配置），贴走势条上方或贴左下角，和身份卡断开。中间那截不要玻璃，直接露出 3D 人体和粒子。
+- 人要全身入画：缩小模型或拉远相机，头顶到顶栏留空，脚到走势条留空，头、手、脚都看见。人体可以压到左上卡和走势条的边缘底下一点，但头必须完整。
+- 走势条保持扁通栏。全屏舱按钮保留。
+
+验收：能看见整颗头；左卡中间不再是空玻璃柱，那块是人体在动。
+
+业务规则不变。pnpm build 必须通过。

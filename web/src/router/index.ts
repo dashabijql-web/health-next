@@ -27,6 +27,12 @@ const router = createRouter({
           meta: { title: '360° 人体', fill: true },
         },
         {
+          path: 'health-monitor/body-360-immersive',
+          name: 'body-360-immersive',
+          component: () => import('@/modules/human-body/Body360ImmersivePage.vue'),
+          meta: { title: '沉浸人体', fill: true },
+        },
+        {
           path: 'mine/map',
           name: 'mine-map',
           component: () => import('@/modules/mine-map/MineMapPage.vue'),

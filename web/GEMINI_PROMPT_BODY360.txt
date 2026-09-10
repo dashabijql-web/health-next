@@ -1,0 +1,37 @@
+你只改 HealthNext 的 360° 人体页，不要改井下地图，不要改后端，不要接数据库，不要做权限和部门。
+
+仓库：/Users/jiangqianli/Documents/code/HealthNext
+先看效果图，再改代码：
+/Users/jiangqianli/.gemini/antigravity/brain/082dace6-5cc6-4b81-a5fc-872b30abae76/worker_health_portrait_1788970138092.jpg
+
+当前页面：
+- 路由 /health-monitor/body-360
+- web/src/modules/human-body/Body360Page.vue
+- web/src/modules/human-body/BodyHologram.vue
+- 模型 /models/wireframe_man.glb
+打开 http://localhost:9531/health-monitor/body-360 看现状（需登录 admin / admin123）。
+
+# 你要做成什么样
+参考效果图的气质：深色精密仪表、人体是视觉中心、体征读数贴在人体周围、身份信息在旁边。
+3D 线框人体必须继续占主舞台，不要换成效果图里的 2D 热力人体。
+
+可以做：
+- 左侧或左上：当前人员身份（姓名、工号）。若要选人，用很克制的搜索/切换，不要做成占半屏的职工表格。
+- 人体周围：心率、血氧、血压、体温、压力。有数显示数，没有显示 --。
+- 采集时间和新鲜/陈旧/无数据。
+- 卡片、间距、字体、对比度向效果图靠拢。
+
+# 禁止
+- 不要重写 Three.js：initScene、loadModel、animate、旋转/粒子/扫描线/dispose 都不要动。
+- 不要人体热力图、姿态应力点。
+- 不要把波形叫真实 ECG。
+- 不要 AI 疲劳 74/100。
+- 不要呼叫医护、手表对讲、已下发。
+- 不要把页面改成「左边长名单 + 右边表单」那种后台布局。上一次这样改已被用户退回。
+- 文件只许动：
+  Body360Page.vue
+  BodyHologram.vue 的 template 和 style（以及为读数新增的 props）
+  如需人员演示数据，可新建一个小 ts，并标明「演示名单」
+  需要的话可在 web/src/styles/base.css 追加变量，不要破坏登录页
+
+改完后说明改了哪些文件，桌面和窄屏各一眼。pnpm build 必须通过。

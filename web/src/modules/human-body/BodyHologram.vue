@@ -5,9 +5,11 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 interface Vitals {
-  heartRate?: number | null
-  bloodOxygen?: number | null
-  temperature?: number | null
+  heartRate?: number | string | null
+  bloodOxygen?: number | string | null
+  bloodPressure?: string | null
+  temperature?: number | string | null
+  stress?: number | string | null
 }
 
 const props = withDefaults(defineProps<{
@@ -17,6 +19,7 @@ const props = withDefaults(defineProps<{
   lastCollected?: string
   reducedMotion?: boolean
   autoRotate?: boolean
+  variant?: 'card' | 'immersive'
 }>(), {
   personName: '',
   vitals: () => ({}),
@@ -24,6 +27,7 @@ const props = withDefaults(defineProps<{
   lastCollected: '',
   reducedMotion: false,
   autoRotate: true,
+  variant: 'card',
 })
 
 
@@ -60,8 +64,12 @@ const statusLabel = computed(() => ({
 }[props.freshnessStatus] || '演示 / 未接后端'))
 
 function formatValue(value: unknown) {
-  if (value === null || value === undefined || value === '' || Number(value) === 0) return '--'
+  if (value === null || value === undefined || value === '') return '--'
   return value
+}
+
+function hasValue(value: unknown) {
+  return value !== null && value !== undefined && value !== '' && value !== '--'
 }
 
 function initScene() {
@@ -110,14 +118,16 @@ function initScene() {
 
 function addPlatform() {
   if (!scene) return
+  const isImm = props.variant === 'immersive'
   const group = new THREE.Group()
-  group.position.y = 0.03
+  group.position.y = isImm ? -0.01 : 0.03
   scene.add(group)
   group.add(new THREE.Mesh(
-    new THREE.CylinderGeometry(1.62, 1.76, 0.12, 96),
+    new THREE.CylinderGeometry(isImm ? 2.05 : 1.62, isImm ? 2.22 : 1.76, 0.12, 96),
     new THREE.MeshStandardMaterial({ color: 0x071728, metalness: 0.8, roughness: 0.32, emissive: 0x061a31, emissiveIntensity: 0.6 }),
   ))
-  ;[1.05, 0.78, 0.52].forEach((radius, index) => {
+  const radii = isImm ? [1.42, 1.05, 0.68] : [1.05, 0.78, 0.52]
+  radii.forEach((radius, index) => {
     const ring = new THREE.Mesh(
       new THREE.TorusGeometry(radius, 0.018, 8, 96),
       new THREE.MeshBasicMaterial({ color: index === 1 ? 0x58d7f4 : 0x1674a8, transparent: true, opacity: index === 1 ? 0.82 : 0.58 }),
@@ -130,13 +140,21 @@ function addPlatform() {
 
 function addOrbitRings() {
   if (!scene) return
-  ;[
-    { radius: 1.32, y: 1.52, tilt: 0.08, color: 0x1c94c9, opacity: 0.42 },
-    { radius: 1.08, y: 2.12, tilt: -0.28, color: 0x4bd7ef, opacity: 0.28 },
-    { radius: 0.88, y: 1.04, tilt: 0.24, color: 0x55d6b7, opacity: 0.24 },
-  ].forEach((item) => {
+  const isImm = props.variant === 'immersive'
+  const ringDefs = isImm
+    ? [
+        { radius: 1.62, y: 1.25, tilt: 0.08, color: 0x1c94c9, opacity: 0.44 },
+        { radius: 1.32, y: 1.65, tilt: -0.28, color: 0x4bd7ef, opacity: 0.32 },
+        { radius: 1.05, y: 0.85, tilt: 0.24, color: 0x55d6b7, opacity: 0.28 },
+      ]
+    : [
+        { radius: 1.32, y: 1.52, tilt: 0.08, color: 0x1c94c9, opacity: 0.42 },
+        { radius: 1.08, y: 2.12, tilt: -0.28, color: 0x4bd7ef, opacity: 0.28 },
+        { radius: 0.88, y: 1.04, tilt: 0.24, color: 0x55d6b7, opacity: 0.24 },
+      ]
+  ringDefs.forEach((item) => {
     const ring = new THREE.Mesh(
-      new THREE.TorusGeometry(item.radius, 0.012, 8, 96),
+      new THREE.TorusGeometry(item.radius, isImm ? 0.014 : 0.012, 8, 96),
       new THREE.MeshBasicMaterial({ color: item.color, transparent: true, opacity: item.opacity }),
     )
     ring.rotation.x = Math.PI / 2 + item.tilt
@@ -148,31 +166,40 @@ function addOrbitRings() {
 
 function addParticleField() {
   if (!scene) return
-  const count = 150
+  const isImm = props.variant === 'immersive'
+  const count = isImm ? 360 : 150
   const positions = new Float32Array(count * 3)
   const colors = new Float32Array(count * 3)
   particleVelocity = new Float32Array(count)
   const palette = [new THREE.Color(0x39d7ff), new THREE.Color(0x63a5ff), new THREE.Color(0x6de3c1)]
   for (let i = 0; i < count; i += 1) {
-    const angle = Math.random() * Math.PI * 2
-    const radius = 1.05 + Math.random() * 1.45
-    positions[i * 3] = Math.cos(angle) * radius
-    positions[i * 3 + 1] = 0.18 + Math.random() * 3.35
-    positions[i * 3 + 2] = Math.sin(angle) * radius * 0.52
+    if (isImm) {
+      // 沉浸模式：粒子覆盖全屏视野，包括左卡背后 (X: -3.6 ~ -1.5) 与底部走势条背后 (Y: -0.2 ~ 0.5)
+      positions[i * 3] = (Math.random() - 0.5) * 7.4
+      positions[i * 3 + 1] = -0.2 + Math.random() * 3.8
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 3.2
+      particleVelocity[i] = 0.035 + Math.random() * 0.08
+    } else {
+      const angle = Math.random() * Math.PI * 2
+      const radius = 1.05 + Math.random() * 1.45
+      positions[i * 3] = Math.cos(angle) * radius
+      positions[i * 3 + 1] = 0.18 + Math.random() * 3.35
+      positions[i * 3 + 2] = Math.sin(angle) * radius * 0.52
+      particleVelocity[i] = 0.035 + Math.random() * 0.07
+    }
     const color = palette[i % palette.length]
     colors[i * 3] = color.r
     colors[i * 3 + 1] = color.g
     colors[i * 3 + 2] = color.b
-    particleVelocity[i] = 0.035 + Math.random() * 0.07
   }
   const geometry = new THREE.BufferGeometry()
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3))
   geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3))
   particleField = new THREE.Points(geometry, new THREE.PointsMaterial({
-    size: 0.042,
+    size: isImm ? 0.048 : 0.042,
     vertexColors: true,
     transparent: true,
-    opacity: 0.76,
+    opacity: isImm ? 0.88 : 0.76,
     depthWrite: false,
   }))
   scene.add(particleField)
@@ -180,11 +207,13 @@ function addParticleField() {
 
 function addScanLine() {
   if (!scene) return
+  const isImm = props.variant === 'immersive'
+  const width = isImm ? 8.6 : 2.8
   scanLine = new THREE.Mesh(
-    new THREE.BoxGeometry(2.8, 0.009, 0.012),
-    new THREE.MeshBasicMaterial({ color: 0x42d9ff, transparent: true, opacity: 0.34 }),
+    new THREE.BoxGeometry(width, isImm ? 0.012 : 0.009, 0.012),
+    new THREE.MeshBasicMaterial({ color: 0x42d9ff, transparent: true, opacity: isImm ? 0.42 : 0.34 }),
   )
-  scanLine.position.set(0, 0.62, 0.35)
+  scanLine.position.set(0, isImm ? 0.1 : 0.62, 0.35)
   scene.add(scanLine)
 }
 
@@ -193,10 +222,12 @@ function loadModel() {
   new GLTFLoader().load('/models/wireframe_man.glb', (gltf: GLTF) => {
     const model = gltf.scene
     const box = new THREE.Box3().setFromObject(model)
-    const height = Math.max(box.max.y - box.min.y, 0.1)
-    model.scale.setScalar(2.48 / height)
+    const height = box.max.y - box.min.y || 1
+    const isImm = props.variant === 'immersive'
+    const targetScale = isImm ? 2.22 : 2.48
+    model.scale.setScalar(targetScale / height)
     const after = new THREE.Box3().setFromObject(model)
-    model.position.set(-((after.min.x + after.max.x) / 2), 0.18 - after.min.y, -((after.min.z + after.max.z) / 2))
+    model.position.set(-((after.min.x + after.max.x) / 2), (isImm ? 0.06 : 0.18) - after.min.y, -((after.min.z + after.max.z) / 2))
     model.traverse((child: THREE.Object3D) => {
       if (!(child as THREE.Mesh).isMesh) return
       const mesh = child as THREE.Mesh
@@ -244,21 +275,26 @@ function animate() {
   animationFrame = requestAnimationFrame(animate)
   const time = performance.now() * 0.001
   const quiet = props.reducedMotion
+  const isImm = props.variant === 'immersive'
   if (modelPivot && props.autoRotate && !quiet && !dragging) modelPivot.rotation.y += 0.0032
   if (particleField) {
     const positions = particleField.geometry.attributes.position.array as Float32Array
+    const resetY = isImm ? -0.2 : 0.18
+    const maxY = isImm ? 3.6 : 3.7
     for (let i = 0; i < particleVelocity.length; i += 1) {
       const yIndex = i * 3 + 1
       positions[yIndex] += (quiet ? particleVelocity[i] * 0.12 : particleVelocity[i]) * 0.016
-      if (positions[yIndex] > 3.7) positions[yIndex] = 0.18
+      if (positions[yIndex] > maxY) positions[yIndex] = resetY
     }
     particleField.geometry.attributes.position.needsUpdate = true
-    particleField.rotation.y = quiet ? 0 : time * 0.018
+    particleField.rotation.y = quiet ? 0 : time * (isImm ? 0.009 : 0.018)
   }
   if (scanLine) {
-    scanLine.position.y = 0.5 + ((time * (quiet ? 0.03 : 0.11)) % 2.65)
+    const minY = isImm ? -0.15 : 0.5
+    const sweepRange = isImm ? 3.35 : 2.65
+    scanLine.position.y = minY + ((time * (quiet ? 0.03 : 0.11)) % sweepRange)
     const material = scanLine.material as THREE.MeshBasicMaterial
-    material.opacity = quiet ? 0.16 : 0.28 + Math.sin(time * 0.55) * 0.05
+    material.opacity = quiet ? 0.16 : (isImm ? 0.40 : 0.28) + Math.sin(time * 0.55) * 0.06
   }
   orbitRings.forEach((ring, index) => {
     ring.rotation.z += (quiet ? 0.0006 : 0.0022) * (index % 2 ? -1 : 1)
@@ -275,8 +311,21 @@ function resizeScene() {
   const verticalDistance = 3.42 / (2 * Math.tan(fov))
   const horizontalDistance = 3.82 / (2 * Math.tan(fov) * Math.max(aspect, 0.1))
   camera.aspect = aspect
-  camera.position.z = Math.max(verticalDistance, horizontalDistance)
-  camera.lookAt(0, 1.42, 0)
+
+  if (props.variant === 'immersive') {
+    // 沉浸模式：全身完整入画（头、手、脚均清晰完整呈现，头顶绝不裁切）
+    // 头顶到顶栏留出安全留白，脚部到底部走势条留出呼吸空间
+    // 垂直视锥高 2.85，中心 y: 1.18，让 2.22 高度人体与旋转底盘完整优雅呈现
+    const verticalDistance = 2.85 / (2 * Math.tan(fov))
+    camera.position.set(0.12, 1.18, verticalDistance)
+    camera.lookAt(0.12, 1.18, 0)
+  } else {
+    const verticalDistance = 3.42 / (2 * Math.tan(fov))
+    const horizontalDistance = 3.82 / (2 * Math.tan(fov) * Math.max(aspect, 0.1))
+    camera.position.set(0, 1.48, Math.max(verticalDistance, horizontalDistance))
+    camera.lookAt(0, 1.42, 0)
+  }
+
   camera.updateProjectionMatrix()
   renderer.setSize(width, height, true)
 }
@@ -315,22 +364,27 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <section class="portrait-hologram" aria-label="三维人体健康信号展示">
+  <section :class="['portrait-hologram', `is-${variant}`]" aria-label="三维人体健康信号展示">
     <div class="hologram-grid"></div>
     <div class="hologram-vignette"></div>
     <!-- 四角精密标尺微标记 -->
-    <div class="hologram-corner hologram-corner--tl"></div>
-    <div class="hologram-corner hologram-corner--tr"></div>
-    <div class="hologram-corner hologram-corner--bl"></div>
-    <div class="hologram-corner hologram-corner--br"></div>
+    <template v-if="variant !== 'immersive'">
+      <div class="hologram-corner hologram-corner--tl"></div>
+      <div class="hologram-corner hologram-corner--tr"></div>
+      <div class="hologram-corner hologram-corner--bl"></div>
+      <div class="hologram-corner hologram-corner--br"></div>
+    </template>
 
-    <header class="hologram-header">
+    <header v-if="variant !== 'immersive'" class="hologram-header">
       <div class="hologram-person">
-        <span class="hologram-eyebrow">3D BODY SIGNAL VIEW</span>
+        <span class="hologram-eyebrow">3D BIOMETRIC HOLOGRAM</span>
         <div class="hologram-person-name">
-          <span class="hologram-status-dot"></span>
+          <span :class="['hologram-status-dot', `is-${statusTone}`]"></span>
           <strong>{{ personName || '未选择人员' }}</strong>
         </div>
+      </div>
+      <div class="hologram-sys-badge">
+        <span class="hud-pill">360° SPATIAL HUD</span>
       </div>
     </header>
 
@@ -342,41 +396,74 @@ onBeforeUnmount(() => {
       <div v-else-if="modelLoading" class="hologram-loading" role="status">正在加载三维人体模型…</div>
     </div>
 
-    <!-- 工业仪表感体征读数牌（待机石板灰无发光，等宽数字） -->
-    <div class="hologram-label hologram-label--heart">
+    <!-- 工业精密仪表体征读数牌（环绕人体布局，高对比度等宽数字） -->
+    <!-- 1. 心率 (左胸) -->
+    <div class="hologram-label hologram-label--heart" :class="{ 'has-val': hasValue(vitals?.heartRate) }">
       <span class="hologram-dot hologram-dot--heart"></span>
       <div class="hologram-label__metric">
-        <b>心率</b>
+        <b>心率 <span>HEART RATE</span></b>
         <span class="hologram-label__val-group">
-          <strong>{{ formatValue(vitals?.heartRate) }}</strong>
+          <strong class="val-heart">{{ formatValue(vitals?.heartRate) }}</strong>
           <small>BPM</small>
         </span>
       </div>
     </div>
-    <div class="hologram-label hologram-label--oxygen">
+
+    <!-- 2. 血压 (左臂/下侧) -->
+    <div class="hologram-label hologram-label--bp" :class="{ 'has-val': hasValue(vitals?.bloodPressure) }">
+      <span class="hologram-dot hologram-dot--bp"></span>
+      <div class="hologram-label__metric">
+        <b v-if="variant === 'immersive'">收缩压/舒张压</b>
+        <b v-else>血压 <span>BLOOD PRESSURE</span></b>
+        <span class="hologram-label__val-group">
+          <strong class="val-bp">{{ formatValue(vitals?.bloodPressure) }}</strong>
+          <small>mmHg</small>
+        </span>
+      </div>
+    </div>
+
+    <!-- 3. 血氧 (右上/肺部) -->
+    <div class="hologram-label hologram-label--oxygen" :class="{ 'has-val': hasValue(vitals?.bloodOxygen) }">
       <span class="hologram-dot hologram-dot--oxygen"></span>
       <div class="hologram-label__metric">
-        <b>血氧</b>
+        <b>血氧 <span>SPO2</span></b>
         <span class="hologram-label__val-group">
-          <strong>{{ formatValue(vitals?.bloodOxygen) }}</strong>
+          <strong class="val-oxygen">{{ formatValue(vitals?.bloodOxygen) }}</strong>
           <small>%</small>
         </span>
       </div>
     </div>
-    <div class="hologram-label hologram-label--temp">
+
+    <!-- 4. 体温 (右中/核心) -->
+    <div class="hologram-label hologram-label--temp" :class="{ 'has-val': hasValue(vitals?.temperature) }">
       <span class="hologram-dot hologram-dot--temp"></span>
       <div class="hologram-label__metric">
-        <b>体温</b>
+        <b>体温 <span>BODY TEMP</span></b>
         <span class="hologram-label__val-group">
-          <strong>{{ formatValue(vitals?.temperature) }}</strong>
+          <strong class="val-temp">{{ formatValue(vitals?.temperature) }}</strong>
           <small>°C</small>
         </span>
       </div>
     </div>
 
-    <footer class="hologram-footer">
-      <span class="hologram-footer__time">采集时间 {{ lastCollected || '暂无记录' }}</span>
-      <span :class="['hologram-status', `is-${statusTone}`]">{{ statusLabel }}</span>
+    <!-- 5. 压力 (右下/负荷) -->
+    <div class="hologram-label hologram-label--stress" :class="{ 'has-val': hasValue(vitals?.stress) }">
+      <span class="hologram-dot hologram-dot--stress"></span>
+      <div class="hologram-label__metric">
+        <b>压力 <span v-if="variant !== 'immersive'">STRESS INDEX</span></b>
+        <span class="hologram-label__val-group">
+          <strong class="val-stress">{{ formatValue(vitals?.stress) }}</strong>
+          <small v-if="variant !== 'immersive'">LV</small>
+        </span>
+      </div>
+    </div>
+
+    <footer v-if="variant !== 'immersive'" class="hologram-footer">
+      <div class="hologram-footer__info">
+        <span class="hologram-footer__time">采集时间: {{ lastCollected || '暂无记录' }}</span>
+        <span :class="['hologram-status', `is-${statusTone}`]">{{ statusLabel }}</span>
+      </div>
+      <div class="hologram-footer__hint">按住鼠标左键可 360° 旋转人体视角</div>
     </footer>
   </section>
 </template>
@@ -391,6 +478,72 @@ onBeforeUnmount(() => {
   border-radius: var(--radius-md);
   background: var(--bg-canvas);
   box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.7), 0 8px 32px rgba(0, 0, 0, 0.4);
+}
+
+.portrait-hologram.is-immersive {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  background: transparent;
+}
+
+.portrait-hologram.is-immersive .hologram-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.portrait-hologram.is-immersive .hologram-vignette {
+  display: none;
+}
+
+.portrait-hologram.is-immersive .hologram-grid {
+  mask-image: none;
+  opacity: 0.12;
+}
+
+.portrait-hologram.is-immersive .hologram-label {
+  background: rgba(8, 12, 18, 0.24);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.portrait-hologram.is-immersive .hologram-label--heart {
+  left: 20%;
+  top: 24%;
+}
+
+.portrait-hologram.is-immersive .hologram-label--bp {
+  left: 20%;
+  top: 56%;
+}
+
+.portrait-hologram.is-immersive .hologram-label--oxygen {
+  right: 8%;
+  top: 20%;
+}
+
+.portrait-hologram.is-immersive .hologram-label--temp {
+  right: 8%;
+  top: 45%;
+}
+
+.portrait-hologram.is-immersive .hologram-label--stress {
+  right: 8%;
+  top: 70%;
+}
+
+@media (max-width: 860px) {
+  .portrait-hologram.is-immersive .hologram-label {
+    display: none;
+  }
 }
 
 .hologram-grid {
@@ -494,9 +647,37 @@ onBeforeUnmount(() => {
   background: var(--status-standby);
 }
 
+.hologram-status-dot.is-normal {
+  background: var(--status-normal);
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+
+.hologram-status-dot.is-warning {
+  background: var(--status-warning);
+  box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
+}
+
+.hologram-status-dot.is-offline {
+  background: var(--status-standby);
+}
+
+.hud-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border: 1px solid rgba(56, 189, 248, 0.24);
+  border-radius: var(--radius-sm);
+  background: rgba(56, 189, 248, 0.06);
+  color: var(--signal-cyan);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
 .hologram-canvas {
   position: absolute;
-  inset: 0 0 32px 0;
+  inset: 0 0 34px 0;
 }
 
 .hologram-canvas canvas {
@@ -534,22 +715,30 @@ onBeforeUnmount(() => {
   font-size: 13px;
 }
 
-/* 工业仪表卡片（克制深色磨砂、等宽数字、无刺眼高发光） */
+/* 工业精密仪表卡片（深色磨砂、等宽数字、精准状态指示） */
 .hologram-label {
   position: absolute;
   z-index: 3;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  border: 1px solid var(--border-dim);
+  gap: 10px;
+  padding: 7px 12px;
+  min-width: 114px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 2px solid rgba(255, 255, 255, 0.15);
   border-radius: var(--radius-sm);
-  background: rgba(13, 17, 23, 0.88);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  background: rgba(9, 14, 23, 0.88);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5);
   pointer-events: none;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
+
+.hologram-label.has-val.hologram-label--heart { border-left-color: var(--gauge-heart, #f87171); }
+.hologram-label.has-val.hologram-label--bp { border-left-color: var(--gauge-bp, #38bdf8); }
+.hologram-label.has-val.hologram-label--oxygen { border-left-color: var(--gauge-oxygen, #34d399); }
+.hologram-label.has-val.hologram-label--temp { border-left-color: var(--gauge-temp, #fbbf24); }
+.hologram-label.has-val.hologram-label--stress { border-left-color: var(--gauge-stress, #a78bfa); }
 
 .hologram-label__metric {
   display: flex;
@@ -558,10 +747,21 @@ onBeforeUnmount(() => {
 }
 
 .hologram-label b {
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.hologram-label b span {
   color: var(--text-muted);
-  font-size: 10px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  opacity: 0.7;
   font-weight: 500;
-  letter-spacing: 0.04em;
 }
 
 .hologram-label__val-group {
@@ -571,37 +771,68 @@ onBeforeUnmount(() => {
 }
 
 .hologram-label strong {
-  color: var(--text-strong);
+  color: var(--text-muted);
   font-family: var(--font-mono);
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 19px;
+  font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
+
+.hologram-label.has-val .val-heart { color: var(--gauge-heart, #f87171); }
+.hologram-label.has-val .val-bp { color: var(--gauge-bp, #38bdf8); }
+.hologram-label.has-val .val-oxygen { color: var(--gauge-oxygen, #34d399); }
+.hologram-label.has-val .val-temp { color: var(--gauge-temp, #fbbf24); }
+.hologram-label.has-val .val-stress { color: var(--gauge-stress, #a78bfa); }
 
 .hologram-label small {
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 10px;
+  font-weight: 500;
 }
 
-/* 待机状态圆点：深板岩灰，无发光 */
+/* 待机与实时状态圆点 */
 .hologram-dot {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
   border-radius: 50%;
   background: var(--status-standby);
   flex-shrink: 0;
+  transition: all 0.3s ease;
 }
 
-/* 预留真实数据时的语义状态（不设全屏发光） */
-.hologram-dot--heart.is-active { background: var(--status-danger); }
-.hologram-dot--oxygen.is-active { background: var(--status-normal); }
-.hologram-dot--temp.is-active { background: var(--status-warning); }
+.has-val .hologram-dot--heart {
+  background: var(--gauge-heart, #f87171);
+  box-shadow: 0 0 8px rgba(248, 113, 113, 0.6);
+}
 
-.hologram-label--heart { top: 38%; right: 14%; }
-.hologram-label--oxygen { top: 44%; left: 12%; }
-.hologram-label--temp { top: 58%; right: 14%; }
+.has-val .hologram-dot--bp {
+  background: var(--gauge-bp, #38bdf8);
+  box-shadow: 0 0 8px rgba(56, 189, 248, 0.6);
+}
+
+.has-val .hologram-dot--oxygen {
+  background: var(--gauge-oxygen, #34d399);
+  box-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.has-val .hologram-dot--temp {
+  background: var(--gauge-temp, #fbbf24);
+  box-shadow: 0 0 8px rgba(251, 191, 36, 0.6);
+}
+
+.has-val .hologram-dot--stress {
+  background: var(--gauge-stress, #a78bfa);
+  box-shadow: 0 0 8px rgba(167, 139, 250, 0.6);
+}
+
+/* 桌面端读数牌环绕人体空间定位 */
+.hologram-label--heart { top: 22%; left: 8%; }
+.hologram-label--bp { top: 52%; left: 8%; }
+.hologram-label--oxygen { top: 18%; right: 8%; }
+.hologram-label--temp { top: 42%; right: 8%; }
+.hologram-label--stress { top: 66%; right: 8%; }
 
 /* 底部状态条：嵌入式底栏，等宽时间，严谨指示 */
 .hologram-footer {
@@ -610,21 +841,27 @@ onBeforeUnmount(() => {
   left: 0;
   right: 0;
   bottom: 0;
-  height: 32px;
+  height: 34px;
   display: flex;
   align-items: center;
   justify-content: space-between;
   padding: 0 16px;
   border-top: 1px solid var(--border-dim);
-  background: rgba(9, 12, 16, 0.85);
-  backdrop-filter: blur(6px);
+  background: rgba(7, 11, 18, 0.9);
+  backdrop-filter: blur(8px);
   color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: 11px;
 }
 
+.hologram-footer__info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .hologram-footer__time {
-  color: var(--text-muted);
+  color: var(--text-secondary);
 }
 
 .hologram-status {
@@ -643,35 +880,71 @@ onBeforeUnmount(() => {
   background: currentColor;
 }
 
-.hologram-status.is-normal { color: var(--status-normal); }
-.hologram-status.is-warning { color: var(--status-warning); }
-.hologram-status.is-offline,
-.hologram-status.is-unknown { color: var(--status-standby); }
+.hologram-status.is-normal {
+  color: var(--status-normal);
+}
 
-@media (max-width: 720px) {
+.hologram-status.is-warning {
+  color: var(--status-warning);
+}
+
+.hologram-status.is-offline,
+.hologram-status.is-unknown {
+  color: var(--status-standby);
+}
+
+.hologram-footer__hint {
+  color: var(--text-muted);
+  font-size: 11px;
+}
+
+@media (max-width: 860px) {
   .hologram-header {
-    top: 10px;
-    left: 10px;
-    right: 10px;
+    top: 8px;
+    left: 8px;
+    right: 8px;
+  }
+
+  .hologram-eyebrow {
+    display: none;
   }
 
   .hologram-label {
-    padding: 4px 8px;
-    transform: scale(0.92);
-    transform-origin: center;
+    padding: 3px 7px;
+    min-width: unset;
+    gap: 6px;
+  }
+
+  .hologram-label b {
+    font-size: 10px;
+  }
+
+  .hologram-label b span {
+    display: none;
   }
 
   .hologram-label strong {
     font-size: 14px;
   }
 
-  .hologram-label--heart { right: 4px; top: 36%; }
-  .hologram-label--oxygen { left: 4px; top: 48%; }
-  .hologram-label--temp { right: 4px; top: 60%; }
+  .hologram-label small {
+    font-size: 9px;
+  }
+
+  .hologram-label--heart { left: 6px; top: 16%; }
+  .hologram-label--bp { left: 6px; top: 52%; }
+  .hologram-label--oxygen { right: 6px; top: 16%; }
+  .hologram-label--temp { right: 6px; top: 42%; }
+  .hologram-label--stress { right: 6px; top: 68%; }
 
   .hologram-footer {
-    padding: 0 10px;
+    padding: 0 8px;
     font-size: 10px;
+    height: 30px;
+  }
+
+  .hologram-footer__hint {
+    display: none;
   }
 }
 </style>
