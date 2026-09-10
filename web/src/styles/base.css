@@ -14,6 +14,21 @@
   --danger: #f87171;
   --radius: 12px;
   --font: "Segoe UI", "PingFang SC", "Microsoft YaHei UI", sans-serif;
+  /* 工业安全指挥系统视觉扩展变量（石墨黑、克制边框与等宽数字） */
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", "Consolas", monospace;
+  --bg-canvas: #090c10;
+  --bg-panel: rgba(13, 17, 23, 0.88);
+  --bg-panel-solid: #0d1117;
+  --border-dim: rgba(255, 255, 255, 0.08);
+  --border-subtle: rgba(148, 163, 184, 0.16);
+  --border-interactive: rgba(56, 189, 248, 0.35);
+  --status-normal: #22c55e;
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  --status-standby: #64748b;
+  --signal-cyan: #38bdf8;
+  --radius-sm: 4px;
+  --radius-md: 6px;
 }
 
 html,

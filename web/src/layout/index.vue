@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { onBeforeUnmount, onMounted } from 'vue'
-import { RouterView } from 'vue-router'
+import { computed, onBeforeUnmount, onMounted } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import Navbar from './Navbar.vue'
 import Sidebar from './Sidebar.vue'
 import { useLayoutStore } from '@/stores/layout'
 
+const route = useRoute()
 const layoutStore = useLayoutStore()
+const fillContent = computed(() => Boolean(route.meta.fill))
 
 function syncSidebar() {
   if (window.innerWidth < 900) {
@@ -28,7 +30,7 @@ onBeforeUnmount(() => {
     <Sidebar />
     <div class="main">
       <Navbar />
-      <main class="content">
+      <main class="content" :class="{ 'content--fill': fillContent }">
         <RouterView />
       </main>
     </div>
@@ -53,5 +55,18 @@ onBeforeUnmount(() => {
   flex: 1;
   padding: 24px;
   overflow: auto;
+}
+
+.content--fill {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: 12px 16px 16px;
+  overflow: hidden;
+}
+
+.content--fill > * {
+  flex: 1;
+  min-height: 0;
 }
 </style>

@@ -1,0 +1,41 @@
+你是工业安全指挥系统的视觉总监，不是业务架构师。
+
+请美化 HealthNext 的两个已能运行的演示页。先看附件截图，再给可执行的视觉方案。不要重写 Three.js 场景逻辑，不要重写 Canvas 巷道绘制算法，不要接后端，不要编造数据。
+
+# 产品气质
+矿山职业健康与安全指挥。克制、精密、适合长时间值班。
+- 背景：石墨黑 / 深灰，不是游戏霓虹
+- 青色只表示实时信号和可交互
+- 绿色=正常，琥珀=关注，红色只表示危急
+- 避免满屏发光描边、紫色渐变、漂浮光球、赛博朋克
+- 中文产品文案，数字用等宽或 DIN 感
+- 面板圆角不超过 8px，信息密度适中，不要卡片套卡片
+
+# 当前页面（截图已附）
+1) 360° 人体  /health-monitor/body-360
+   中央是可旋转的线框人体。心率/血氧/体温必须保持 --，文案必须保留「演示 / 未接后端」。
+   不要人体热区，不要真实 ECG，不要疲劳分数，不要假读数。
+
+2) 井下态势  /mine/map
+   中央是真实 CAD 巷道图（6461 条线）。可缩放平移搜索。
+   不要虚构人员 GPS、瓦斯热区、SOS 脉冲点。
+   必须保留「CAD 平面坐标，不是经纬度」和「位置数据未接入」。
+
+# 请你输出（按这个结构，具体到像素/颜色）
+对每一页分别写：
+
+A. 三句话诊断：现在哪里土、哪里抢戏、哪里空。
+B. 信息层级：什么第一眼看到，什么退后。
+C. 可改清单：顶栏、演示徽章、工具条、人体标签、地图 HUD、底栏、间距、字体、对比度。每条写成「改什么 → 改成什么样」，带色值或间距。
+D. 不要动的清单。
+E. 若你直接改代码：只改 Vue 的页面外壳和 CSS。文件仅限
+   - web/src/modules/human-body/Body360Page.vue
+   - web/src/modules/human-body/BodyHologram.vue 的 style 和 HUD DOM
+   - web/src/modules/mine-map/MineMapPage.vue
+   - web/src/modules/mine-map/MineGisMap.vue 的 style 和 HUD DOM
+   - web/src/styles/base.css（只追加变量，不破坏登录页）
+   禁止改 Three.js init/animate/loadModel，禁止改巷道 draw/fitMap/坐标换算。
+
+仓库：/Users/jiangqianli/Documents/code/HealthNext
+优先看截图。代码只在需要落地样式时打开。
+完成后用桌面 1440 和窄屏各说明改了什么。

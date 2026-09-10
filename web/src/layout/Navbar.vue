@@ -45,6 +45,7 @@ async function onLogout() {
 
 .navbar {
   justify-content: space-between;
+  min-width: 0;
   height: 56px;
   padding: 0 16px;
   border-bottom: 1px solid var(--border-soft);
@@ -75,7 +76,14 @@ async function onLogout() {
 
 .divider,
 .page {
+  min-width: 0;
   color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.page {
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .actions {
@@ -85,5 +93,12 @@ async function onLogout() {
 .user {
   color: var(--text-strong);
   font-size: 14px;
+  white-space: nowrap;
+}
+
+@media (max-width: 720px) {
+  .user {
+    display: none;
+  }
 }
 </style>

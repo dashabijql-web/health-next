@@ -20,6 +20,18 @@ const router = createRouter({
           component: () => import('@/views/home/index.vue'),
           meta: { title: '工作台' },
         },
+        {
+          path: 'health-monitor/body-360',
+          name: 'body-360',
+          component: () => import('@/modules/human-body/Body360Page.vue'),
+          meta: { title: '360° 人体', fill: true },
+        },
+        {
+          path: 'mine/map',
+          name: 'mine-map',
+          component: () => import('@/modules/mine-map/MineMapPage.vue'),
+          meta: { title: '井下态势', fill: true },
+        },
       ],
     },
   ],
