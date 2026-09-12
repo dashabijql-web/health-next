@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import BodyHologram from './BodyHologram.vue'
 import { DEMO_WORKERS, type DemoWorker, type TrendPoint } from './demoWorkers'
 
 defineOptions({ name: 'Body360ImmersivePage' })
 
+const route = useRoute()
 const hologram = ref<{ resetView: () => void } | null>(null)
 const reducedMotion = ref(false)
 const autoRotate = ref(true)
@@ -30,10 +32,57 @@ const selectedWorkerId = ref<string>(workersList.value[0].id)
 const isSelectorOpen = ref(false)
 const searchQuery = ref('')
 const selectorRef = ref<HTMLElement | null>(null)
+const workerMissing = ref(false)
+
+const requestedEmpCode = computed(() => {
+  const raw = route.query.empCode ?? route.query.id
+  return typeof raw === 'string' ? raw.trim() : ''
+})
+const requestedEmpName = computed(() => (
+  typeof route.query.empName === 'string' ? route.query.empName.trim() : ''
+))
+
+function applyQueryWorker() {
+  const code = requestedEmpCode.value
+  if (!code) {
+    workerMissing.value = false
+    if (!workersList.value.some(item => item.id === selectedWorkerId.value)) {
+      selectedWorkerId.value = workersList.value[0]?.id ?? ''
+    }
+    return
+  }
+  const found = workersList.value.find(item => item.id === code)
+  if (found) {
+    selectedWorkerId.value = found.id
+    workerMissing.value = false
+    return
+  }
+  workerMissing.value = true
+  selectedWorkerId.value = ''
+}
 
 const currentWorker = computed<DemoWorker>(() => {
-  return workersList.value.find(w => w.id === selectedWorkerId.value) || workersList.value[0]
+  if (workerMissing.value) {
+    return {
+      id: requestedEmpCode.value || '--',
+      name: requestedEmpName.value || '未找到人员',
+      team: '--',
+      role: '--',
+      freshnessStatus: 'no_data',
+      lastCollected: '',
+      telemetry: { battery: null, netty: 'offline', signal: 'none', wearing: 'unknown' },
+      vitals: { heartRate: null, bloodOxygen: null, bloodPressure: null, temperature: null, stress: null },
+      trend: [],
+    }
+  }
+  return workersList.value.find(w => w.id === selectedWorkerId.value) ?? workersList.value[0]
 })
+
+watch(
+  () => [route.query.empCode, route.query.id, route.query.empName] as const,
+  () => applyQueryWorker(),
+  { immediate: true },
+)
 
 const isOfflineOrNoData = computed(() => {
   return currentWorker.value.freshnessStatus === 'no_data' || currentWorker.value.telemetry.netty !== 'online'
@@ -52,13 +101,17 @@ const filteredWorkers = computed(() => {
 
 function selectWorker(worker: DemoWorker) {
   selectedWorkerId.value = worker.id
+  workerMissing.value = false
   isSelectorOpen.value = false
 }
 
 function cycleWorker(direction: number) {
+  if (workersList.value.length === 0) return
   const currentIndex = workersList.value.findIndex(w => w.id === selectedWorkerId.value)
-  const nextIndex = (currentIndex + direction + workersList.value.length) % workersList.value.length
+  const base = currentIndex < 0 ? 0 : currentIndex
+  const nextIndex = (base + direction + workersList.value.length) % workersList.value.length
   selectedWorkerId.value = workersList.value[nextIndex].id
+  workerMissing.value = false
 }
 
 function resetView() {
@@ -342,6 +395,7 @@ onBeforeUnmount(() => {
     <!-- 底层：全屏满铺 3D 线框人体背景（接收全屏鼠标拖拽旋转） -->
     <div class="immersive-bg">
       <BodyHologram
+        v-if="!workerMissing"
         ref="hologram"
         variant="immersive"
         :person-name="currentWorker.name"
@@ -351,6 +405,9 @@ onBeforeUnmount(() => {
         :reduced-motion="reducedMotion"
         :auto-rotate="autoRotate"
       />
+      <div v-else class="missing-stage" role="status">
+        未加载三维人体。名单中没有该人员，不会改用其他人的数据。
+      </div>
     </div>
 
     <!-- 顶层悬浮 HUD 玻璃层容器（容器本身 pointer-events: none，内部玻璃条 pointer-events: auto） -->
@@ -468,8 +525,12 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
+      <div v-if="workerMissing" class="missing-banner" role="alert">
+        未找到工号 {{ requestedEmpCode }}{{ requestedEmpName ? `（${requestedEmpName}）` : '' }} 的沉浸人体数据。当前没有加载任何人，请从名单选择或返回。
+      </div>
+
       <!-- 2a. 左上浮岛：按内容撑开的矮卡 (身份 + 两行遥测缩写)，高约 160~180px，不拉长 -->
-      <aside class="glass-card glass-island--left-top">
+      <aside v-if="!workerMissing" class="glass-card glass-island--left-top">
         <div class="glass-card-header">
           <span class="glass-card-eyebrow">职工标卡</span>
           <span class="glass-card-tag">在册</span>
@@ -868,6 +929,32 @@ onBeforeUnmount(() => {
   inset: 0;
   z-index: 0;
   pointer-events: auto;
+}
+
+.missing-stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  padding: 24px;
+  color: #8fa7c3;
+  font-size: 14px;
+  text-align: center;
+  background: #06111f;
+}
+
+.missing-banner {
+  pointer-events: auto;
+  margin: 8px 16px 0;
+  padding: 10px 14px;
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  border-radius: 6px;
+  background: rgba(12, 16, 22, 0.92);
+  color: #fcd34d;
+  font-size: 13px;
+  line-height: 1.5;
+  max-width: 720px;
 }
 
 /* 浮动玻璃 HUD 层：容器贯穿无阻，内层卡片独立交互，悬浮于画布上方 z-index: 1 */

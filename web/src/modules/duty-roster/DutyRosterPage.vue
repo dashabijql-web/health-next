@@ -18,6 +18,7 @@ import {
   DUTY_SUMMARY_STATS,
   type DutyWorkerItem,
 } from './mockDutyData'
+import { immersiveBodyLocation } from '@/utils/immersiveBody'
 
 defineOptions({ name: 'DutyRosterPage' })
 
@@ -120,11 +121,8 @@ function resetFilters() {
 }
 
 // 导航至 360° 人体画像
-function goToBody360(empCode: string) {
-  router.push({
-    path: '/health-monitor/body-360',
-    query: { empCode },
-  })
+function goToBody360(empCode: string, empName?: string) {
+  router.push(immersiveBodyLocation(empCode, empName))
 }
 
 // 发消息 / 语音操作
@@ -360,8 +358,8 @@ function isPressureAbnormal(pressure: number | null): boolean {
               <td class="col-name">
                 <a
                   class="worker-name-link"
-                  @click="goToBody360(worker.empCode)"
-                  title="点击查看此人 360° 人体画像"
+                  @click="goToBody360(worker.empCode, worker.empName)"
+                  title="点击查看此人沉浸人体"
                 >
                   {{ worker.empName }}
                 </a>
@@ -471,8 +469,8 @@ function isPressureAbnormal(pressure: number | null): boolean {
                   <button
                     type="button"
                     class="btn-act btn-act-link"
-                    @click="goToBody360(worker.empCode)"
-                    title="跳转至 360° 人体健康页面"
+                    @click="goToBody360(worker.empCode, worker.empName)"
+                    title="跳转至沉浸人体"
                   >
                     查看人体
                   </button>

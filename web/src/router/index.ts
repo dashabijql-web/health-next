@@ -27,16 +27,31 @@ const router = createRouter({
           meta: { title: '值班名单' },
         },
         {
+          path: 'health-monitor/employee-archive',
+          name: 'employee-archive',
+          component: () => import('@/modules/people/PeopleArchivePage.vue'),
+          meta: { title: '人员档案' },
+        },
+        {
           path: 'health-monitor/warnings',
           name: 'warning-records',
           component: () => import('@/modules/warning-records/WarningRecordsPage.vue'),
           meta: { title: '预警记录' },
         },
         {
+          path: 'alert-management/notifications',
+          name: 'incident-todo',
+          component: () => import('@/modules/incident-todo/IncidentTodoPage.vue'),
+          meta: { title: '待办事件' },
+        },
+        {
           path: 'health-monitor/body-360',
           name: 'body-360',
-          component: () => import('@/modules/human-body/Body360Page.vue'),
-          meta: { title: '360° 人体', fill: true },
+          redirect: (to) => ({
+            path: '/health-monitor/body-360-immersive',
+            query: to.query,
+            hash: to.hash,
+          }),
         },
         {
           path: 'health-monitor/body-360-immersive',

@@ -1,5 +1,7 @@
 # HealthNext
 
+人体展示默认使用「沉浸人体」：`/health-monitor/body-360-immersive`，实现为 `web/src/modules/human-body/Body360ImmersivePage.vue`。原「360° 人体」`/health-monitor/body-360` 保留为非默认页面，不再作为新开发和视觉验收基准；人员档案、事件详情和健康画像的人体入口应进入沉浸人体，并携带当前人员上下文。
+
 职业健康监测平台的从零重写脚手架，独立于 `health` monorepo。
 
 - 后端：Spring Boot 3.5、Java 21、Sa-Token、Actuator

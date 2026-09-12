@@ -1,5 +1,7 @@
 # HealthNext 后台实施计划（通俗版）
 
+人体展示默认使用「沉浸人体」：`/health-monitor/body-360-immersive`，实现为 `web/src/modules/human-body/Body360ImmersivePage.vue`。原「360° 人体」`/health-monitor/body-360` 保留为非默认页面，不再作为新开发和视觉验收基准；人员档案、事件详情和健康画像的人体入口应进入沉浸人体，并携带当前人员上下文。
+
 这份计划讲页面背后的工作：怎么接手表、怎么保存数据、怎么报警、怎么记录处理结果，以及怎样保证系统能正常运行。页面外观和点击方式见 [页面设计计划](./FIGMA_PAGE_DESIGN_PLAN.md)，整体顺序见 [总体开发计划](./PRODUCT_DESIGN_PLAN.md)。
 
 数据库已经确定用 **Oracle**。文中的“要做”和“做完标准”是待完成的工作，不是已经通过的结果。

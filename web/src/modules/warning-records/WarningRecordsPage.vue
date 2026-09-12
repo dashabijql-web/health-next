@@ -17,6 +17,7 @@ import {
   WARNING_SUMMARY_STATS,
   type WarningRecordItem,
 } from './mockWarningsData'
+import { immersiveBodyLocation } from '@/utils/immersiveBody'
 
 defineOptions({ name: 'WarningRecordsPage' })
 
@@ -153,11 +154,8 @@ function resetFilters() {
 }
 
 // 导航至 360° 人体画像
-function goToBody360(empCode: string) {
-  router.push({
-    path: '/health-monitor/body-360',
-    query: { empCode },
-  })
+function goToBody360(empCode: string, empName?: string) {
+  router.push(immersiveBodyLocation(empCode, empName))
 }
 
 // 操作：标记处理
@@ -377,8 +375,8 @@ function handleToggleHandled(record: WarningRecordItem) {
               <td class="col-name">
                 <a
                   class="worker-name-link"
-                  @click="goToBody360(record.empCode)"
-                  title="点击查看此人 360° 人体画像"
+                  @click="goToBody360(record.empCode, record.empName)"
+                  title="点击查看此人沉浸人体"
                 >
                   {{ record.empName }}
                 </a>
@@ -438,8 +436,8 @@ function handleToggleHandled(record: WarningRecordItem) {
                   <button
                     type="button"
                     class="btn-act btn-act-link"
-                    @click="goToBody360(record.empCode)"
-                    title="跳转至 360° 人体健康页面"
+                    @click="goToBody360(record.empCode, record.empName)"
+                    title="跳转至沉浸人体"
                   >
                     查看人体
                   </button>
