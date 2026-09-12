@@ -27,6 +27,12 @@ const router = createRouter({
           meta: { title: '值班名单' },
         },
         {
+          path: 'health-monitor/warnings',
+          name: 'warning-records',
+          component: () => import('@/modules/warning-records/WarningRecordsPage.vue'),
+          meta: { title: '预警记录' },
+        },
+        {
           path: 'health-monitor/body-360',
           name: 'body-360',
           component: () => import('@/modules/human-body/Body360Page.vue'),

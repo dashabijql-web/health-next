@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
-import { Odometer, User, FullScreen, MapLocation, Tickets } from '@element-plus/icons-vue'
+import { Odometer, User, FullScreen, MapLocation, Tickets, Warning } from '@element-plus/icons-vue'
 import { useLayoutStore } from '@/stores/layout'
 
 const route = useRoute()
@@ -28,6 +28,10 @@ const active = computed(() => route.path)
       <el-menu-item index="/health-monitor/real-time">
         <el-icon><Tickets /></el-icon>
         <span>值班名单</span>
+      </el-menu-item>
+      <el-menu-item index="/health-monitor/warnings">
+        <el-icon><Warning /></el-icon>
+        <span>预警记录</span>
       </el-menu-item>
       <el-menu-item index="/health-monitor/body-360">
         <el-icon><User /></el-icon>
