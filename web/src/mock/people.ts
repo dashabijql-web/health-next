@@ -228,6 +228,16 @@ function jobNameById(jobId: string): string {
   return map[jobId] ?? '采煤机司机'
 }
 
+const AGG_DEPT_CYCLE: Array<[string, string]> = [
+  ['D-CJ1', '采掘一队'],
+  ['D-ZC2', '综采二队'],
+  ['D-JJ3', '掘进三队'],
+  ['D-TF', '通风防尘区'],
+  ['D-JD', '机电运输队'],
+  ['D-AQ', '安全巡检队'],
+  ['D-DZ', '地质防治水队'],
+]
+
 export const DEFAULT_PEOPLE: PersonRecord[] = [
   ...CORE_PEOPLE,
   ...MORE_NAMES.map((item, index) => {
@@ -335,4 +345,32 @@ export const DEFAULT_PEOPLE: PersonRecord[] = [
     openIncidentId: null,
     remark: '次日采集时间，不能判为正常或当前异常。',
   },
+  ...Array.from({ length: 20 }, (_, index) => {
+    const n = String(index + 1).padStart(2, '0')
+    const imei = `86923405107${String(1000 + index)}`
+    const offline = index % 5 === 4
+    const staleHealth = index % 7 === 0
+    return {
+      employeeId: `EMP-AGG-${n}`,
+      empCode: `AGG00${n}`,
+      empName: `演示聚合${n}`,
+      departmentId: AGG_DEPT_CYCLE[index % AGG_DEPT_CYCLE.length][0],
+      departmentName: AGG_DEPT_CYCLE[index % AGG_DEPT_CYCLE.length][1],
+      jobId: 'J-CM',
+      jobName: '采煤机司机',
+      phone: `13700008${n}`,
+      imei,
+      deviceId: `DEV-${imei}`,
+      employmentStatus: 'active' as const,
+      lastOnlineAt: offline ? '2026-09-12T14:10:00+08:00' : `2026-09-12T15:${String(50 + (index % 8)).padStart(2, '0')}:00+08:00`,
+      lastHealthAt: offline
+        ? '2026-09-12T14:08:00+08:00'
+        : staleHealth
+          ? '2026-09-12T15:40:00+08:00'
+          : `2026-09-12T15:${String(52 + (index % 6)).padStart(2, '0')}:00+08:00`,
+      currentRisk: 'none' as const,
+      openIncidentId: null,
+      remark: '工作台聚合验证样本，用于确认统计不依赖第一页。',
+    }
+  }),
 ]

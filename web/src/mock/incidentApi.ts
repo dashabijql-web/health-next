@@ -3,7 +3,7 @@ import { cloneJson, evidenceSummary, wait } from './format'
 import { fixturesForScene } from './incidents'
 import { isTodoState, SEVERITY_RANK } from './labels'
 import { ASSIGNABLE_USERS, findAssignee } from './org'
-import { CURRENT_OPERATOR, getTestClock, isWritableScene, TEST_CLOCK_ISO } from './session'
+import { CURRENT_OPERATOR, getTestClock, isWritableScene, TEST_CLOCK_DATE, TEST_CLOCK_ISO } from './session'
 import type {
   IncidentAction,
   IncidentActionPayload,
@@ -40,6 +40,20 @@ function resetIfNeeded(scene: IncidentDemoScene) {
 
 export function peekIncidentScene(): IncidentDemoScene {
   return store.scene
+}
+
+/** 读取当前事件台账，不切换演示场景，也不做分页截断。 */
+export function peekIncidentRecords(): IncidentRecord[] {
+  return store.records
+}
+
+export function listIncidentsUnpaged(query: IncidentQuery = {}): IncidentListItem[] {
+  return sortRecords(store.records.filter((item) => listMatch(item, query)))
+    .map((item) => toListItem(item, store.scene))
+}
+
+export function peekIncidentSummarySync(query: IncidentQuery = {}): IncidentSummary {
+  return computeSummary(store.records.filter((item) => baseMatch(item, query)))
 }
 
 /** 不切换事件演示场景，避免实时监控或人员详情重置待办样本。 */
@@ -146,12 +160,18 @@ function toListItem(record: IncidentRecord, scene: IncidentDemoScene): IncidentL
   }
 }
 
+function shiftIsoDay(day: string, delta: number): string {
+  const stamp = Date.parse(`${day}T12:00:00+08:00`) + delta * 24 * 60 * 60 * 1000
+  return new Date(stamp).toLocaleDateString('sv-SE', { timeZone: 'Asia/Shanghai' })
+}
+
 function inTimeRange(occurredAt: string, timeRange: IncidentQuery['timeRange']): boolean {
   if (!timeRange || timeRange === 'all') return true
   const day = occurredAt.slice(0, 10)
-  if (timeRange === 'today') return day === '2026-09-12'
-  if (timeRange === '3d') return day >= '2026-09-10' && day <= '2026-09-12'
-  if (timeRange === '7d') return day >= '2026-09-06' && day <= '2026-09-12'
+  const today = TEST_CLOCK_DATE
+  if (timeRange === 'today') return day === today
+  if (timeRange === '3d') return day >= shiftIsoDay(today, -2) && day <= today
+  if (timeRange === '7d') return day >= shiftIsoDay(today, -6) && day <= today
   return true
 }
 

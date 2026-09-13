@@ -637,6 +637,8 @@ onMounted(async () => {
               :key="item.deviceId"
               class="hn-row"
               :class="{ 'is-critical': item.batteryPercent !== null && item.batteryPercent <= LOW_BATTERY_THRESHOLD }"
+              :data-device-id="item.deviceId"
+              :data-online="item.onlineStatus"
             >
               <td v-if="canWrite" class="col-check col-hide-sm">
                 <input type="checkbox" :checked="selected.includes(item.deviceId)" @change="toggleOne(item.deviceId, ($event.target as HTMLInputElement).checked)">

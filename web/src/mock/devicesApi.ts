@@ -308,6 +308,17 @@ function toDetail(record: DeviceRecord, scene: DeviceDemoScene): DeviceDetail {
   }
 }
 
+/** 工作台等跨页聚合读取当前设备台账，不切换设备演示场景，也不截断分页。 */
+export function peekDeviceCensus(): { summary: DeviceSummary; offline: DeviceListItem[] } {
+  hydrateFromPeople()
+  return {
+    summary: buildSummary(store.records),
+    offline: store.records
+      .filter((item) => item.onlineStatus === 'offline')
+      .map((item) => toListItem(item, store.scene)),
+  }
+}
+
 export async function fetchDeviceList(
   scene: DeviceDemoScene,
   query: DeviceQuery = {},

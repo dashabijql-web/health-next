@@ -67,6 +67,7 @@ const draft = reactive({
 const applied = reactive({ ...draft })
 const rowPending = ref('')
 const hasLoaded = ref(false)
+let loadGeneration = 0
 
 const totalPages = computed(() => Math.max(1, Math.ceil(total.value / pageSize.value)))
 const pageNumbers = computed(() => {
@@ -125,12 +126,47 @@ function stampRefreshTime() {
     .join(':')
 }
 
+function applyQueryFromRoute(query: Record<string, unknown>) {
+  if (typeof query.keyword === 'string') draft.keyword = query.keyword
+  if (typeof query.departmentId === 'string') draft.departmentId = query.departmentId
+  if (query.source === 'HEALTH_THRESHOLD' || query.source === 'DEVICE_ALARM' || query.source === 'TREND_WARNING' || query.source === 'all') {
+    draft.source = query.source
+  }
+  if (query.severity === 'critical' || query.severity === 'warning' || query.severity === 'info' || query.severity === 'all') {
+    draft.severity = query.severity
+  }
+  const handling = query.handlingState
+  if (
+    handling === 'all'
+    || handling === 'todo'
+    || handling === 'new'
+    || handling === 'confirmed'
+    || handling === 'assigned'
+    || handling === 'processing'
+    || handling === 'completed'
+    || handling === 'closed'
+    || handling === 'false_alarm'
+  ) {
+    draft.handlingState = handling
+  }
+  if (query.timeRange === 'all' || query.timeRange === 'today' || query.timeRange === '3d' || query.timeRange === '7d') {
+    draft.timeRange = query.timeRange
+  }
+  if (query.mineOnly === 'true' || query.mineOnly === '1') draft.mineOnly = true
+  if (query.unassignedOnly === 'true' || query.unassignedOnly === '1') draft.unassignedOnly = true
+  if (query.overdueOnly === 'true' || query.overdueOnly === '1') draft.overdueOnly = true
+  if (query.criticalUnconfirmedOnly === 'true' || query.criticalUnconfirmedOnly === '1') draft.criticalUnconfirmedOnly = true
+  Object.assign(applied, { ...draft })
+}
+
 async function loadList(options: { refresh?: boolean } = {}) {
+  const gen = ++loadGeneration
   if (options.refresh) refreshing.value = true
   else loading.value = true
   if (!options.refresh) errorMessage.value = ''
   try {
     const result = await fetchIncidentList(scene.value, queryFromApplied(), { refresh: options.refresh })
+    if (gen !== loadGeneration) return
     list.value = result.list
     total.value = result.total
     page.value = result.page
@@ -141,8 +177,24 @@ async function loadList(options: { refresh?: boolean } = {}) {
     errorMessage.value = ''
     stampRefreshTime()
   } catch (error) {
+    if (gen !== loadGeneration) return
     const message = isMockApiError(error) ? `${error.message}（错误编号 ${error.requestId}）` : '待办事件加载失败'
-    if (hasLoaded.value && isMockApiError(error) && error.code === 'UNAVAILABLE') {
+    if (isMockApiError(error) && error.code === 'FORBIDDEN') {
+      list.value = []
+      total.value = 0
+      hasLoaded.value = true
+      cacheNotice.value = ''
+      errorMessage.value = message
+      summary.value = {
+        totalTodo: 0,
+        mine: 0,
+        criticalUnconfirmed: 0,
+        unassigned: 0,
+        overdue: 0,
+        generatedAt: '',
+        dataNote: 'mock 测试数据，非正式接口统计',
+      }
+    } else if (hasLoaded.value && isMockApiError(error) && error.code === 'UNAVAILABLE') {
       cacheNotice.value = message
       ElMessage.warning(message)
     } else {
@@ -162,8 +214,10 @@ async function loadList(options: { refresh?: boolean } = {}) {
       }
     }
   } finally {
-    loading.value = false
-    refreshing.value = false
+    if (gen === loadGeneration) {
+      loading.value = false
+      refreshing.value = false
+    }
   }
 }
 
@@ -248,6 +302,16 @@ function syncUrl(incidentId = workspace.incidentId) {
   if (incidentId) query.incidentId = incidentId
   if (page.value > 1) query.page = String(page.value)
   if (pageSize.value !== 20) query.pageSize = String(pageSize.value)
+  if (applied.keyword.trim()) query.keyword = applied.keyword.trim()
+  if (applied.departmentId !== 'all') query.departmentId = applied.departmentId
+  if (applied.source !== 'all') query.source = applied.source
+  if (applied.severity !== 'all') query.severity = applied.severity
+  if (applied.handlingState !== 'todo') query.handlingState = applied.handlingState
+  if (applied.timeRange !== 'all') query.timeRange = applied.timeRange
+  if (applied.mineOnly) query.mineOnly = 'true'
+  if (applied.unassignedOnly) query.unassignedOnly = 'true'
+  if (applied.overdueOnly) query.overdueOnly = 'true'
+  if (applied.criticalUnconfirmedOnly) query.criticalUnconfirmedOnly = 'true'
   void router.replace({ query })
 }
 
@@ -294,7 +358,9 @@ onMounted(() => {
   }
   if (typeof query.page === 'string') page.value = Number(query.page) || 1
   if (query.pageSize === '50') pageSize.value = 50
+  applyQueryFromRoute(query as Record<string, unknown>)
   workspace.scene = scene.value
+  syncUrl(typeof query.incidentId === 'string' ? query.incidentId : workspace.incidentId)
   void loadList().then(() => {
     if (typeof query.incidentId === 'string' && query.incidentId) {
       openIncident(query.incidentId)
@@ -454,6 +520,7 @@ onMounted(() => {
         <label class="hn-filter-label">状态：</label>
         <el-select v-model="draft.handlingState" class="hn-select-sm">
           <el-option label="全部待办" value="todo" />
+          <el-option label="全部状态" value="all" />
           <el-option label="新建" value="new" />
           <el-option label="已确认" value="confirmed" />
           <el-option label="已分派" value="assigned" />
@@ -472,11 +539,18 @@ onMounted(() => {
           <el-option label="近 7 天" value="7d" />
         </el-select>
       </div>
+      <div class="hn-filter-group">
+        <el-checkbox v-model="draft.mineOnly">仅我的待办</el-checkbox>
+      </div>
       <button type="button" class="hn-btn hn-btn-query" @click="applyDraft">查询</button>
       <button type="button" class="hn-btn hn-btn-reset" @click="resetFilters">重置</button>
       <div class="hn-filter-count">
         匹配记录：<strong>{{ total }}</strong> 条
         · 总待办 <strong>{{ summary.totalTodo }}</strong>
+        <span v-if="applied.mineOnly"> · 当前：仅我的待办</span>
+        <span v-if="applied.severity !== 'all'"> · 严重度 {{ SEVERITY_LABELS[applied.severity] }}</span>
+        <span v-if="applied.timeRange !== 'all'"> · 时间 {{ applied.timeRange === 'today' ? '今天' : applied.timeRange }}</span>
+        <span v-if="applied.handlingState === 'all'"> · 全部状态</span>
       </div>
     </section>
 
@@ -502,6 +576,9 @@ onMounted(() => {
               :key="item.incidentId"
               class="hn-row"
               :class="{ 'is-critical': item.severity === 'critical' && item.handlingState !== 'closed' }"
+              :data-incident-id="item.incidentId"
+              :data-employee-id="item.employeeId"
+              :data-severity="item.severity"
             >
               <td>
                 <button type="button" class="hn-link" @click="openIncident(item.incidentId)">

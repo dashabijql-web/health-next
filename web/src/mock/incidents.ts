@@ -1,4 +1,4 @@
-import { CURRENT_OPERATOR, TEST_CLOCK_ISO } from './session'
+import { CURRENT_OPERATOR, TEST_CLOCK_DATE, TEST_CLOCK_ISO } from './session'
 import type { HandlingState, IncidentRecord, IncidentSource, RecoveryState, Severity } from './types'
 
 function timeline(
@@ -269,6 +269,7 @@ const EXTRA_NAMES = [
   '演示职工巽',
   '演示职工坎',
   '演示职工·超长姓名测试甲乙丙丁戊己庚辛',
+  ...Array.from({ length: 36 }, (_, index) => `演示职工聚合${String(index + 1).padStart(2, '0')}`),
 ]
 
 const EXTRA_DEPTS: Array<[string, string]> = [
@@ -360,7 +361,7 @@ function pad(num: number): string {
 function extraOccurredAt(index: number): string {
   const minute = 10 + ((index * 7) % 40)
   const hour = 10 + (index % 5)
-  return `2026-09-12T${pad(hour)}:${pad(minute)}:00+08:00`
+  return `${TEST_CLOCK_DATE}T${pad(hour)}:${pad(minute)}:00+08:00`
 }
 
 function extraDueAt(index: number, state: HandlingState): string | null {
@@ -375,16 +376,14 @@ export function buildPaginationIncidents(): IncidentRecord[] {
     const incidentId = `INC-DEMO-${String(index).padStart(3, '0')}`
     const dept = EXTRA_DEPTS[offset % EXTRA_DEPTS.length]
     const event = EXTRA_EVENTS[offset % EXTRA_EVENTS.length]
-    const handlingState = EXTRA_STATES[offset % EXTRA_STATES.length]
+    const handlingState = offset < 6 ? 'new' : EXTRA_STATES[(offset % 4) + 1]
     const severity = EXTRA_SEVERITY[offset % EXTRA_SEVERITY.length]
     const missingLocation = offset === 2 || offset === 23
     const missingValue = offset === 8
     const assignee =
       handlingState === 'new'
         ? null
-        : offset % 3 === 0
-          ? { userId: CURRENT_OPERATOR.userId, name: CURRENT_OPERATOR.name }
-          : { userId: 'U-DUTY-01', name: '演示值班员甲' }
+        : { userId: CURRENT_OPERATOR.userId, name: CURRENT_OPERATOR.name }
     const occurredAt = extraOccurredAt(offset)
     const value = missingValue ? null : event.value
     const dueAt = extraDueAt(offset, handlingState)
@@ -464,6 +463,5 @@ export function buildPaginationIncidents(): IncidentRecord[] {
 
 export function fixturesForScene(scene: string): IncidentRecord[] {
   if (scene === 'empty') return []
-  if (scene === 'pagination') return buildPaginationIncidents()
-  return CORE_INCIDENTS
+  return buildPaginationIncidents()
 }

@@ -6,8 +6,9 @@ import type {
   PeopleDemoScene,
 } from './types'
 
-/** 固定测试时钟，样板阶段所有超时 / SLA 均相对此时刻计算。 */
+/** 固定测试时钟，样板阶段所有超时 / SLA / 今日统计均相对此时刻计算。 */
 export const TEST_CLOCK_ISO = '2026-09-12T16:00:00+08:00'
+export const TEST_CLOCK_DATE = TEST_CLOCK_ISO.slice(0, 10)
 
 export const CURRENT_OPERATOR: OperatorAccount = {
   userId: 'U-ADMIN',
@@ -16,8 +17,8 @@ export const CURRENT_OPERATOR: OperatorAccount = {
 }
 
 export const INCIDENT_SCENE_OPTIONS: { value: IncidentDemoScene; label: string }[] = [
-  { value: 'default', label: '默认四条样本' },
-  { value: 'pagination', label: '分页样本（28 条）' },
+  { value: 'default', label: '默认样本' },
+  { value: 'pagination', label: '分页样本（超过 50 条）' },
   { value: 'empty', label: '无待办' },
   { value: 'error', label: '加载失败' },
   { value: 'cache-fail', label: '刷新失败保留缓存' },

@@ -205,6 +205,23 @@ function computeSummary(rows: MonitorListItem[]): MonitorSummary {
   }
 }
 
+/** 工作台健康统计读取完整人员台账，不使用监控页演示场景，也不截断分页。 */
+export function peekMonitorCensus(query: MonitorQuery = {}): {
+  rows: MonitorListItem[]
+  summary: MonitorSummary
+  rosterCount: number
+} {
+  const people = peopleSource()
+  const all = people.map((person) => toRow(person, false))
+  const scoped = all.filter((item) => scopeMatch(item, query))
+  const matched = sortRows(all.filter((item) => listMatch(item, query)))
+  return {
+    rows: matched,
+    summary: { ...computeSummary(scoped), scopeNote: scopeNoteFor(query) },
+    rosterCount: people.length,
+  }
+}
+
 export function peekMonitorPerson(employeeId: string): MonitorListItem | null {
   const person = peopleSource().find((item) => item.employeeId === employeeId)
     ?? DEFAULT_PEOPLE.find((item) => item.employeeId === employeeId)
