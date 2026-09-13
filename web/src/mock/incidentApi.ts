@@ -55,6 +55,13 @@ export function peekIncidentForEmployee(employeeId: string): IncidentRecord | nu
   return any ? cloneJson(any) : null
 }
 
+/** 不切换事件演示场景，读取该人员在当前 store 中的全部事件。 */
+export function peekIncidentsForEmployee(employeeId: string): IncidentRecord[] {
+  return store.records
+    .filter((item) => item.employeeId === employeeId)
+    .map((item) => cloneJson(item))
+}
+
 export function resolveRelatedIncident(employeeId: string, claimedId: string | null | undefined): IncidentRecord | null {
   if (claimedId) {
     const byId = peekIncidentById(claimedId)

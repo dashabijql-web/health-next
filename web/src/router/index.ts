@@ -39,6 +39,12 @@ const router = createRouter({
           meta: { title: '人员档案' },
         },
         {
+          path: 'health-monitor/employee-profile',
+          name: 'employee-profile',
+          component: () => import('@/modules/profile/EmployeeProfilePage.vue'),
+          meta: { title: '职工健康画像' },
+        },
+        {
           path: 'admin/device-list',
           name: 'device-list',
           component: () => import('@/modules/devices/DeviceListPage.vue'),

@@ -1,6 +1,6 @@
 # HealthNext 后台实施计划（通俗版）
 
-前端进度：F18/C01、F14、F22/C03 和 F06 实时监控的 mock 样板已完成，具体范围与验收证据见 [总体计划的已完成与待办](./PRODUCT_DESIGN_PLAN.md#已完成与待办)。绑定校验和实时名单目前只在前端 mock 数据层生效，不代表 E 阶段或 D4 已完成；Oracle、真实设备和正式业务接口继续按本文待办实施。
+前端进度：F18/C01、F14、F22/C03、F06 实时监控和 F15 职工健康画像的本批 mock 样板已完成，具体范围与验收证据见 [总体计划的已完成与待办](./PRODUCT_DESIGN_PLAN.md#已完成与待办)。绑定校验和实时名单目前只在前端 mock 数据层生效，不代表 E 阶段或 D4 已完成；Oracle、真实设备和正式业务接口继续按本文待办实施。
 
 人体展示默认使用「沉浸人体」：`/health-monitor/body-360-immersive`，实现为 `web/src/modules/human-body/Body360ImmersivePage.vue`。原「360° 人体」`/health-monitor/body-360` 保留为非默认页面，不再作为新开发和视觉验收基准；人员档案、事件详情和健康画像的人体入口应进入沉浸人体，并携带当前人员上下文。
 
