@@ -1,8 +1,12 @@
 import type {
+  DeviceLifecycleStatus,
+  DeviceOnlineStatus,
   EmploymentStatus,
   HandlingState,
   IncidentAction,
   IncidentSource,
+  IndicatorState,
+  MetricKey,
   PersonRisk,
   RecoveryState,
   Severity,
@@ -65,6 +69,40 @@ export const RISK_LABELS: Record<PersonRisk, string> = {
   attention: '关注',
   critical: '高危',
   unknown: '未知',
+}
+
+export const DEVICE_ONLINE_LABELS: Record<DeviceOnlineStatus, string> = {
+  online: '在线',
+  offline: '离线',
+}
+
+export const DEVICE_LIFECYCLE_LABELS: Record<DeviceLifecycleStatus, string> = {
+  active: '启用',
+  inactive: '已停用',
+}
+
+export const LOW_BATTERY_THRESHOLD = 20
+
+export const METRIC_LABELS: Record<MetricKey, string> = {
+  heartRate: '心率',
+  bloodPressure: '血压',
+  bloodOxygen: '血氧',
+  temperature: '体温',
+  pressure: '压力',
+}
+
+export const INDICATOR_STATE_LABELS: Record<IndicatorState, string> = {
+  normal: '正常',
+  warning: '异常',
+  stale: '过旧',
+  no_data: '无数据',
+}
+
+export const INDICATOR_STATE_RANK: Record<IndicatorState, number> = {
+  warning: 4,
+  stale: 3,
+  normal: 2,
+  no_data: 1,
 }
 
 export const TODO_STATES: HandlingState[] = ['new', 'confirmed', 'assigned', 'processing', 'completed']

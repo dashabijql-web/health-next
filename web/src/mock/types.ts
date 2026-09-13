@@ -35,6 +35,15 @@ export type IncidentDemoScene =
   | 'readonly'
 
 export type PeopleDemoScene = 'default' | 'empty' | 'error' | 'forbidden' | 'readonly'
+export type DeviceDemoScene = 'default' | 'empty' | 'error' | 'forbidden' | 'readonly'
+export type MonitorDemoScene =
+  | 'default'
+  | 'empty'
+  | 'empty-online'
+  | 'error'
+  | 'cache-fail'
+  | 'forbidden'
+  | 'readonly'
 
 export interface OperatorAccount {
   userId: string
@@ -227,6 +236,218 @@ export interface PersonWritePayload {
   imei?: string | null
   employmentStatus: EmploymentStatus
   remark?: string | null
+}
+
+export type DeviceOnlineStatus = 'online' | 'offline'
+export type DeviceLifecycleStatus = 'active' | 'inactive'
+export type DeviceBatteryFilter = 'all' | 'low' | 'normal' | 'unknown'
+export type DeviceAction = 'view' | 'edit' | 'bind' | 'unbind' | 'deactivate'
+
+export interface DeviceBindingHistoryItem {
+  id: string
+  employeeId: string | null
+  employeeName: string
+  empCode: string | null
+  boundAt: string
+  unboundAt: string | null
+  note: string | null
+}
+
+export interface DeviceMaintenanceItem {
+  id: string
+  at: string
+  actorName: string
+  action: string
+  note: string | null
+}
+
+export interface DeviceErrorItem {
+  id: string
+  at: string
+  code: string
+  message: string
+}
+
+export interface DeviceRecord {
+  deviceId: string
+  imei: string
+  deviceName: string
+  model: string
+  firmware: string | null
+  network: string | null
+  departmentId: string | null
+  departmentName: string | null
+  employeeId: string | null
+  employeeName: string | null
+  empCode: string | null
+  onlineStatus: DeviceOnlineStatus
+  lifecycleStatus: DeviceLifecycleStatus
+  batteryPercent: number | null
+  lastCommAt: string | null
+  lastDataAt: string | null
+  lastOnlineAt: string | null
+  remark: string | null
+  version: number
+  bindings: DeviceBindingHistoryItem[]
+  maintenance: DeviceMaintenanceItem[]
+  errors: DeviceErrorItem[]
+}
+
+export interface DeviceListItem {
+  deviceId: string
+  imei: string
+  deviceName: string
+  model: string
+  firmware: string | null
+  employeeId: string | null
+  employeeName: string | null
+  empCode: string | null
+  departmentName: string | null
+  onlineStatus: DeviceOnlineStatus
+  lifecycleStatus: DeviceLifecycleStatus
+  batteryPercent: number | null
+  lastCommAt: string | null
+  lastDataAt: string | null
+  lastOnlineAt: string | null
+  missingFields: string[]
+  allowedActions: DeviceAction[]
+  version: number
+}
+
+export interface DeviceDetail extends DeviceRecord {
+  missingFields: string[]
+  allowedActions: DeviceAction[]
+  controlUnavailableReason: string
+  rawUnavailableReason: string
+}
+
+export interface DeviceSummary {
+  total: number
+  online: number
+  offline: number
+  lowBattery: number
+  unbound: number
+  generatedAt: string
+  dataNote: string
+}
+
+export interface DeviceQuery {
+  imei?: string
+  model?: string | 'all'
+  onlineStatus?: DeviceOnlineStatus | 'all'
+  bindingStatus?: DeviceBindingStatus | 'all'
+  battery?: DeviceBatteryFilter
+  departmentId?: string
+  page?: number
+  pageSize?: number
+}
+
+export interface DeviceWritePayload {
+  imei: string
+  deviceName: string
+  model: string
+  firmware?: string | null
+  departmentId?: string | null
+  remark?: string | null
+}
+
+export interface DeviceImportRow {
+  line: number
+  imei: string
+  deviceName: string
+  model: string
+  firmware?: string | null
+  departmentId?: string | null
+}
+
+export interface DeviceBindCandidate {
+  employeeId: string
+  empName: string
+  empCode: string
+  departmentName: string
+  jobName: string
+  boundDeviceId: string | null
+}
+
+export interface BatchItemResult {
+  key: string
+  label: string
+  success: boolean
+  message: string
+}
+
+export interface BatchOpResult {
+  requestId: string
+  results: BatchItemResult[]
+  successCount: number
+  failCount: number
+}
+
+export type MetricKey = 'heartRate' | 'bloodPressure' | 'bloodOxygen' | 'temperature' | 'pressure'
+export type IndicatorState = 'normal' | 'warning' | 'stale' | 'no_data'
+
+export interface RawMetricReading {
+  value: number | string | null
+  unit: string
+  measuredAt: string | null
+  valid: boolean
+  invalidReason?: string | null
+}
+
+export interface IndicatorView {
+  key: MetricKey
+  label: string
+  value: number | string | null
+  display: string
+  unit: string
+  measuredAt: string | null
+  state: IndicatorState
+  stateLabel: string
+  reason: string | null
+}
+
+export interface MonitorListItem {
+  employeeId: string
+  empCode: string
+  empName: string
+  departmentId: string
+  departmentName: string
+  jobName: string
+  deviceId: string | null
+  imei: string | null
+  deviceName: string | null
+  onlineStatus: DeviceOnlineStatus
+  lastOnlineAt: string | null
+  indicators: Record<MetricKey, IndicatorView>
+  indicatorStates: Record<MetricKey, IndicatorState>
+  overallStatus: IndicatorState
+  warningReasons: string[]
+  relatedIncidentId: string | null
+  relatedIncidentName: string | null
+  relatedIncidentHandling: HandlingState | null
+  relatedIncidentMissingReason: string | null
+}
+
+export interface MonitorSummary {
+  online: number
+  warning: number
+  stale: number
+  noData: number
+  generatedAt: string
+  dataNote: string
+  scopeNote: string
+  onlineWindowMinutes: number
+  freshnessWindowMinutes: number
+}
+
+export interface MonitorQuery {
+  keyword?: string
+  departmentId?: string
+  overallStatus?: IndicatorState | 'all'
+  metric?: MetricKey | 'all'
+  onlineStatus?: DeviceOnlineStatus | 'all'
+  page?: number
+  pageSize?: number
 }
 
 export type MockErrorCode =

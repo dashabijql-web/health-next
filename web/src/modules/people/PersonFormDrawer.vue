@@ -22,7 +22,7 @@ const emit = defineEmits<{
 }>()
 
 const submitting = ref(false)
-const loading = ref(false)
+const loading = ref(true)
 const form = reactive<PersonWritePayload>({
   empName: '',
   empCode: '',
@@ -65,11 +65,12 @@ watch(
   () => [props.modelValue, props.mode, props.employeeId] as const,
   async ([open, mode, employeeId]) => {
     if (!open) return
+    loading.value = true
     if (mode === 'create' || !employeeId) {
       resetForm()
+      loading.value = false
       return
     }
-    loading.value = true
     try {
       const detail = await fetchPersonDetail(props.scene, employeeId)
       form.empName = detail.empName
@@ -147,7 +148,7 @@ async function submit() {
       <label>手机号</label>
       <el-input v-model="form.phone" maxlength="20" placeholder="可空" />
       <label>IMEI</label>
-      <el-input v-model="form.imei" maxlength="32" placeholder="可空，填写后视为已绑定" />
+      <el-input v-model="form.imei" maxlength="15" placeholder="可空，15 位；占用或已停用会被拒绝" />
       <label>在职状态</label>
       <el-select v-model="form.employmentStatus" class="full">
         <el-option label="在职" value="active" />

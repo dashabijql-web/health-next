@@ -42,6 +42,27 @@ export function peekIncidentScene(): IncidentDemoScene {
   return store.scene
 }
 
+/** 不切换事件演示场景，避免实时监控或人员详情重置待办样本。 */
+export function peekIncidentById(incidentId: string | null | undefined): IncidentRecord | null {
+  if (!incidentId) return null
+  const found = store.records.find((item) => item.incidentId === incidentId)
+  return found ? cloneJson(found) : null
+}
+
+export function peekIncidentForEmployee(employeeId: string): IncidentRecord | null {
+  const open = store.records.find((item) => item.employeeId === employeeId && isTodoState(item.handlingState))
+  const any = open ?? store.records.find((item) => item.employeeId === employeeId)
+  return any ? cloneJson(any) : null
+}
+
+export function resolveRelatedIncident(employeeId: string, claimedId: string | null | undefined): IncidentRecord | null {
+  if (claimedId) {
+    const byId = peekIncidentById(claimedId)
+    if (byId && byId.employeeId === employeeId) return byId
+  }
+  return peekIncidentForEmployee(employeeId)
+}
+
 export function seedIncidentScene(scene: IncidentDemoScene) {
   resetIfNeeded(scene)
 }

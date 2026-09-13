@@ -159,6 +159,10 @@
   gap: 14px;
 }
 
+.hn-capsules.is-five {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
 .hn-capsule {
   display: flex;
   flex-direction: column;
@@ -345,6 +349,50 @@
   overflow: hidden;
   position: relative;
   max-width: 100%;
+}
+
+.hn-batch-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+  padding: 10px 18px;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.hn-result-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.hn-result-item {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  font-size: 13px;
+}
+
+.hn-result-item.is-ok {
+  border-color: rgba(34, 197, 94, 0.28);
+}
+
+.hn-result-item.is-fail {
+  border-color: rgba(239, 68, 68, 0.28);
+}
+
+.hn-table .col-check {
+  width: 36px;
+  min-width: 36px;
+  padding-left: 12px;
+  padding-right: 4px;
 }
 
 .hn-table-scroll {
@@ -579,6 +627,49 @@
 }
 .hn-status.is-overdue .hn-dot { background: #ef4444; }
 
+.hn-status.is-normal {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+}
+.hn-status.is-normal .hn-dot { background: #22c55e; }
+
+.hn-status.is-warning {
+  background: rgba(239, 68, 68, 0.14);
+  color: #f87171;
+}
+.hn-status.is-warning .hn-dot { background: #ef4444; }
+
+.hn-status.is-stale {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+}
+.hn-status.is-stale .hn-dot { background: #f59e0b; }
+
+.hn-status.is-no_data {
+  background: rgba(100, 116, 139, 0.14);
+  color: #94a3b8;
+}
+.hn-status.is-no_data .hn-dot { background: #64748b; }
+
+.hn-table .col-sticky-left {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  box-shadow: 8px 0 8px rgba(0, 0, 0, 0.22);
+}
+
+.hn-table th.col-sticky-left {
+  background: #090e17;
+}
+
+.hn-table td.col-sticky-left {
+  background: #0d1117;
+}
+
+.hn-row:hover td.col-sticky-left {
+  background: #111823;
+}
+
 .hn-source {
   display: inline-block;
   padding: 2px 7px;
@@ -765,6 +856,10 @@
   .hn-table .col-hide-lg {
     display: none;
   }
+
+  .hn-capsules.is-five {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 1100px) {
@@ -778,7 +873,8 @@
 }
 
 @media (max-width: 1024px) {
-  .hn-capsules {
+  .hn-capsules,
+  .hn-capsules.is-five {
     grid-template-columns: repeat(2, 1fr);
   }
 
@@ -788,8 +884,28 @@
 }
 
 @media (max-width: 640px) {
-  .hn-capsules {
+  .hn-capsules.is-compact {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .hn-capsules.is-compact .hn-capsule {
+    min-width: 0;
+    padding: 10px 12px;
+  }
+
+  .hn-capsules.is-compact .hn-capsule-number {
+    font-size: 20px;
+  }
+
+  .hn-capsules,
+  .hn-capsules.is-five {
     grid-template-columns: 1fr;
+  }
+
+  .hn-table .col-check {
+    display: none;
   }
 
   .hn-filter-count {
@@ -823,6 +939,11 @@
     width: 72px;
   }
 
+  .hn-table .col-sticky-left {
+    position: static;
+    box-shadow: none;
+  }
+
   .hn-actions {
     flex-wrap: nowrap;
   }
@@ -831,4 +952,53 @@
 .el-drawer__footer .hn-actions,
 .drawer-footer .hn-actions {
   flex-wrap: wrap;
+}
+
+.hn-incident-drawer.el-drawer {
+  background: #0d1117;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.hn-incident-drawer .el-drawer__header {
+  margin-bottom: 0;
+  padding: 14px 20px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.16);
+  color: #f3f8ff;
+}
+
+.hn-incident-drawer .el-drawer__body {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: calc(100% - 61px);
+  padding: 12px 20px 16px;
+  overflow: hidden;
+}
+
+.hn-incident-drawer .el-drawer__footer {
+  padding: 12px 20px 16px;
+  border-top: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.hn-incident-drawer .el-drawer__close-btn {
+  color: #8fa7c3;
+}
+
+.hn-dialog.el-dialog {
+  background: #0d1117;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+}
+
+.hn-dialog .el-dialog__title,
+.hn-dialog .el-dialog__body,
+.hn-dialog .el-dialog__footer {
+  color: #d8e5f5;
+}
+
+.hn-dialog .el-textarea__inner {
+  color: #f3f8ff;
+  background: rgba(9, 12, 16, 0.7);
 }

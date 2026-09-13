@@ -1,3 +1,4 @@
+import { commitPersonBinding, findDeviceById, planPersonImeiBinding, syncBoundPersonProfile } from './deviceStore'
 import { MockApiError, newRequestId } from './errors'
 import { cloneJson, displayPhone, wait } from './format'
 import { findDepartment, findJob } from './org'
@@ -18,11 +19,13 @@ interface PeopleStore {
   seq: number
 }
 
-const store: PeopleStore = {
+const root = globalThis as typeof globalThis & { __hnPeopleStore?: PeopleStore }
+const store: PeopleStore = root.__hnPeopleStore ?? {
   scene: 'default',
   records: cloneJson(DEFAULT_PEOPLE),
   seq: 200,
 }
+root.__hnPeopleStore = store
 
 function resetIfNeeded(scene: PeopleDemoScene) {
   if (store.scene !== scene) {
@@ -63,7 +66,16 @@ function maybeFail(scene: PeopleDemoScene) {
   }
 }
 
+function boundImei(record: PersonRecord): string | null {
+  if (record.deviceId) {
+    const device = findDeviceById(record.deviceId)
+    if (device) return device.imei
+  }
+  return record.imei
+}
+
 function toListItem(record: PersonRecord): PersonListItem {
+  const imei = boundImei(record)
   return {
     employeeId: record.employeeId,
     empCode: record.empCode,
@@ -71,7 +83,7 @@ function toListItem(record: PersonRecord): PersonListItem {
     departmentName: record.departmentName,
     jobName: record.jobName,
     phoneDisplay: displayPhone(record.phone, false),
-    imei: record.imei,
+    imei,
     deviceId: record.deviceId,
     deviceBinding: record.deviceId ? 'bound' : 'unbound',
     employmentStatus: record.employmentStatus,
@@ -86,7 +98,7 @@ function toListItem(record: PersonRecord): PersonListItem {
 function matchPerson(record: PersonRecord, query: PersonQuery): boolean {
   const keyword = query.keyword?.trim().toLowerCase() ?? ''
   if (keyword) {
-    const hay = [record.empName, record.empCode, record.phone ?? '', record.imei ?? '', record.employeeId]
+    const hay = [record.empName, record.empCode, record.phone ?? '', boundImei(record) ?? '', record.employeeId]
       .join(' ')
       .toLowerCase()
     if (!hay.includes(keyword)) return false
@@ -135,11 +147,18 @@ function findPersonRecord(employeeId: string): PersonRecord | undefined {
 /** 不切换人员演示场景，避免事件详情读取人员时重置档案页。 */
 export function lookupPerson(employeeId: string): PersonRecord | null {
   const found = findPersonRecord(employeeId)
-  return found ? cloneJson(found) : null
+  if (!found) return null
+  const copy = cloneJson(found)
+  copy.imei = boundImei(found)
+  return copy
 }
 
-export async function fetchPersonDetail(scene: PeopleDemoScene, employeeId: string): Promise<PersonRecord & { phoneDisplay: string; contactMasked: boolean }> {
-  resetIfNeeded(scene)
+export async function fetchPersonDetail(
+  scene: PeopleDemoScene,
+  employeeId: string,
+  options?: { preserveStore?: boolean },
+): Promise<PersonRecord & { phoneDisplay: string; contactMasked: boolean }> {
+  if (!options?.preserveStore) resetIfNeeded(scene)
   await wait(160)
   assertReadable(scene)
   maybeFail(scene)
@@ -152,39 +171,53 @@ export async function fetchPersonDetail(scene: PeopleDemoScene, employeeId: stri
     })
   }
   const viewContact = canViewContact(scene)
+  const detail = cloneJson(found)
+  detail.imei = boundImei(found)
   return {
-    ...cloneJson(found),
+    ...detail,
     phoneDisplay: displayPhone(found.phone, viewContact),
     contactMasked: !viewContact,
   }
 }
 
-function applyWrite(target: PersonRecord, payload: PersonWritePayload) {
+function parsePersonFields(payload: PersonWritePayload, requestId: string) {
   const department = findDepartment(payload.departmentId)
   const job = findJob(payload.jobId)
   if (!payload.empName.trim()) {
-    throw new MockApiError({ code: 'VALIDATION', requestId: newRequestId('VALIDATION'), message: '请填写姓名', field: 'empName' })
+    throw new MockApiError({ code: 'VALIDATION', requestId, message: '请填写姓名', field: 'empName' })
   }
   if (!payload.empCode.trim()) {
-    throw new MockApiError({ code: 'VALIDATION', requestId: newRequestId('VALIDATION'), message: '请填写工号', field: 'empCode' })
+    throw new MockApiError({ code: 'VALIDATION', requestId, message: '请填写工号', field: 'empCode' })
   }
   if (!department) {
-    throw new MockApiError({ code: 'VALIDATION', requestId: newRequestId('VALIDATION'), message: '请选择部门', field: 'departmentId' })
+    throw new MockApiError({ code: 'VALIDATION', requestId, message: '请选择部门', field: 'departmentId' })
   }
   if (!job) {
-    throw new MockApiError({ code: 'VALIDATION', requestId: newRequestId('VALIDATION'), message: '请选择工种', field: 'jobId' })
+    throw new MockApiError({ code: 'VALIDATION', requestId, message: '请选择工种', field: 'jobId' })
   }
-  target.empName = payload.empName.trim()
-  target.empCode = payload.empCode.trim()
-  target.departmentId = department.id
-  target.departmentName = department.name
-  target.jobId = job.id
-  target.jobName = job.name
-  target.phone = payload.phone?.trim() || null
-  target.imei = payload.imei?.trim() || null
-  target.deviceId = target.imei ? `DEV-${target.imei}` : null
-  target.employmentStatus = payload.employmentStatus
-  target.remark = payload.remark?.trim() || null
+  return {
+    empName: payload.empName.trim(),
+    empCode: payload.empCode.trim(),
+    departmentId: department.id,
+    departmentName: department.name,
+    jobId: job.id,
+    jobName: job.name,
+    phone: payload.phone?.trim() || null,
+    employmentStatus: payload.employmentStatus,
+    remark: payload.remark?.trim() || null,
+  }
+}
+
+function applyPersonFields(target: PersonRecord, fields: ReturnType<typeof parsePersonFields>) {
+  target.empName = fields.empName
+  target.empCode = fields.empCode
+  target.departmentId = fields.departmentId
+  target.departmentName = fields.departmentName
+  target.jobId = fields.jobId
+  target.jobName = fields.jobName
+  target.phone = fields.phone
+  target.employmentStatus = fields.employmentStatus
+  target.remark = fields.remark
 }
 
 export async function createPerson(scene: PeopleDemoScene, payload: PersonWritePayload): Promise<PersonRecord> {
@@ -192,31 +225,38 @@ export async function createPerson(scene: PeopleDemoScene, payload: PersonWriteP
   await wait(240)
   const requestId = newRequestId('OK')
   assertWritable(scene, requestId)
-  const dup = store.records.some((item) => item.empCode === payload.empCode.trim())
+  const fields = parsePersonFields(payload, requestId)
+  const dup = store.records.some((item) => item.empCode === fields.empCode)
   if (dup) {
     throw new MockApiError({ code: 'VALIDATION', requestId, message: '工号已存在', field: 'empCode' })
   }
+  const plan = planPersonImeiBinding(
+    { employeeId: null, imei: null, deviceId: null },
+    payload.imei,
+    store.records,
+    requestId,
+  )
   store.seq += 1
   const created: PersonRecord = {
     employeeId: `EMP-NEW-${store.seq}`,
-    empCode: payload.empCode.trim(),
-    empName: payload.empName.trim(),
-    departmentId: payload.departmentId,
-    departmentName: findDepartment(payload.departmentId)?.name ?? '',
-    jobId: payload.jobId,
-    jobName: findJob(payload.jobId)?.name ?? '',
-    phone: payload.phone?.trim() || null,
-    imei: payload.imei?.trim() || null,
-    deviceId: payload.imei?.trim() ? `DEV-${payload.imei.trim()}` : null,
-    employmentStatus: payload.employmentStatus,
+    empCode: fields.empCode,
+    empName: fields.empName,
+    departmentId: fields.departmentId,
+    departmentName: fields.departmentName,
+    jobId: fields.jobId,
+    jobName: fields.jobName,
+    phone: fields.phone,
+    imei: plan.imei,
+    deviceId: plan.deviceId,
+    employmentStatus: fields.employmentStatus,
     lastOnlineAt: null,
     lastHealthAt: null,
     currentRisk: 'none',
     openIncidentId: null,
-    remark: payload.remark?.trim() || null,
+    remark: fields.remark,
   }
-  applyWrite(created, payload)
   store.records.unshift(created)
+  commitPersonBinding(created, plan)
   return cloneJson(created)
 }
 
@@ -229,10 +269,106 @@ export async function updatePerson(scene: PeopleDemoScene, employeeId: string, p
   if (!found) {
     throw new MockApiError({ code: 'NOT_FOUND', requestId, message: '人员不存在或已失去查看权限' })
   }
-  const dup = store.records.some((item) => item.employeeId !== employeeId && item.empCode === payload.empCode.trim())
+  const fields = parsePersonFields(payload, requestId)
+  const dup = store.records.some((item) => item.employeeId !== employeeId && item.empCode === fields.empCode)
   if (dup) {
     throw new MockApiError({ code: 'VALIDATION', requestId, message: '工号已存在', field: 'empCode' })
   }
-  applyWrite(found, payload)
+  const plan = planPersonImeiBinding(
+    { employeeId: found.employeeId, imei: found.imei, deviceId: found.deviceId },
+    payload.imei,
+    store.records,
+    requestId,
+  )
+  applyPersonFields(found, fields)
+  found.imei = plan.imei
+  found.deviceId = plan.deviceId
+  commitPersonBinding(found, plan)
+  syncBoundPersonProfile(found)
   return cloneJson(found)
+}
+
+/** 设备页读取当前人员台账，不切换人员演示场景。 */
+export function peekPeopleRecords(): PersonRecord[] {
+  return store.records
+}
+
+export function listPeopleForDeviceBind(): PersonRecord[] {
+  const source = store.records.length > 0 ? store.records : DEFAULT_PEOPLE
+  return source.map((item) => cloneJson(item))
+}
+
+function ensureMutablePerson(employeeId: string): PersonRecord | undefined {
+  const found = store.records.find((item) => item.employeeId === employeeId)
+  if (found) return found
+  const seed = DEFAULT_PEOPLE.find((item) => item.employeeId === employeeId)
+  if (!seed) return undefined
+  const inserted = cloneJson(seed)
+  store.records.push(inserted)
+  return inserted
+}
+
+/** 设备绑定写入人员台账。人员已绑定其他设备时明确拒绝。 */
+export function applyPersonDeviceBind(employeeId: string, deviceId: string, imei: string, requestId: string): PersonRecord {
+  const person = ensureMutablePerson(employeeId)
+  if (!person) {
+    throw new MockApiError({ code: 'NOT_FOUND', requestId, message: '人员不存在或已失去查看权限' })
+  }
+  if (person.employmentStatus !== 'active') {
+    throw new MockApiError({
+      code: 'VALIDATION',
+      requestId,
+      message: `${person.empName} 当前不是在职状态，不能绑定设备`,
+    })
+  }
+  const device = findDeviceById(deviceId)
+  if (device?.lifecycleStatus === 'inactive') {
+    throw new MockApiError({
+      code: 'VALIDATION',
+      requestId,
+      message: '设备已停用，不能绑定',
+    })
+  }
+  if (person.deviceId && person.deviceId !== deviceId) {
+    throw new MockApiError({
+      code: 'CONFLICT',
+      requestId,
+      message: `${person.empName} 已绑定设备 ${person.deviceId}，请先解绑`,
+    })
+  }
+  const occupied = store.records.find(
+    (item) => item.employeeId !== employeeId && (item.deviceId === deviceId || item.imei === imei),
+  )
+  if (occupied) {
+    throw new MockApiError({
+      code: 'CONFLICT',
+      requestId,
+      message: `设备已绑定给 ${occupied.empName}，不能重复绑定`,
+    })
+  }
+  person.imei = imei
+  person.deviceId = deviceId
+  return person
+}
+
+export function applyPersonDeviceUnbind(employeeId: string, deviceId: string): PersonRecord | null {
+  const person = store.records.find((item) => item.employeeId === employeeId)
+    ?? ensureMutablePerson(employeeId)
+  if (!person) return null
+  if (person.deviceId && person.deviceId !== deviceId) return person
+  person.imei = null
+  person.deviceId = null
+  return person
+}
+
+export function applyPersonImeiUpdate(employeeId: string, imei: string | null): void {
+  const person = store.records.find((item) => item.employeeId === employeeId)
+  if (!person) return
+  person.imei = imei
+}
+
+export function syncImeiForDevice(deviceId: string, imei: string | null): void {
+  for (const person of store.records) {
+    if (person.deviceId === deviceId) person.imei = imei
+  }
 }

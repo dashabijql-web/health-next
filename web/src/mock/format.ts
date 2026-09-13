@@ -28,6 +28,28 @@ export function formatClockTime(iso: string | null | undefined): string {
   return text.slice(11)
 }
 
+/** 相对固定测试时钟的年龄，不使用浏览器当前时间。 */
+export function formatAgeToClock(iso: string | null | undefined, clock = getTestClock()): string {
+  if (!iso) return '无采集时间'
+  const at = new Date(iso).getTime()
+  if (Number.isNaN(at)) return '采集时间无效'
+  const diffMs = clock.getTime() - at
+  if (diffMs < 0) return '晚于测试时钟'
+  const minutes = Math.floor(diffMs / 60000)
+  const seconds = Math.floor((diffMs % 60000) / 1000)
+  if (minutes <= 0) return `${seconds} 秒前（相对测试时钟）`
+  if (minutes < 60) return `${minutes} 分${seconds} 秒前（相对测试时钟）`
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return `${hours} 小时${rest} 分前（相对测试时钟）`
+}
+
+export function formatDateTimeParts(iso: string | null | undefined): { date: string; time: string } | null {
+  const text = formatDateTime(iso)
+  if (text === '--') return null
+  return { date: text.slice(0, 10), time: text.slice(11) }
+}
+
 export interface SlaView {
   text: string
   overdue: boolean
@@ -69,6 +91,12 @@ export function maskPhone(phone: string | null | undefined): string {
 export function displayPhone(phone: string | null | undefined, canView: boolean): string {
   if (!phone) return '--'
   return canView ? phone : maskPhone(phone)
+}
+
+/** 电量未知必须显示「未知」，不能当成 0%。已知 0% 才显示 0%。 */
+export function formatBattery(percent: number | null | undefined): string {
+  if (percent === null || percent === undefined || Number.isNaN(percent)) return '未知'
+  return `${percent}%`
 }
 
 export function evidenceSummary(items: { metricLabel: string; value: number | string | null; unit: string }[]): string {

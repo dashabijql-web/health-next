@@ -22,6 +22,12 @@ const router = createRouter({
         },
         {
           path: 'health-monitor/real-time',
+          name: 'real-time-monitor',
+          component: () => import('@/modules/monitor/RealTimeMonitorPage.vue'),
+          meta: { title: '实时监控' },
+        },
+        {
+          path: 'health-monitor/duty-roster',
           name: 'duty-roster',
           component: () => import('@/modules/duty-roster/DutyRosterPage.vue'),
           meta: { title: '值班名单' },
@@ -31,6 +37,12 @@ const router = createRouter({
           name: 'employee-archive',
           component: () => import('@/modules/people/PeopleArchivePage.vue'),
           meta: { title: '人员档案' },
+        },
+        {
+          path: 'admin/device-list',
+          name: 'device-list',
+          component: () => import('@/modules/devices/DeviceListPage.vue'),
+          meta: { title: '设备管理' },
         },
         {
           path: 'health-monitor/warnings',
